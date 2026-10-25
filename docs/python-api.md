@@ -1,32 +1,15 @@
-# Verinode — Quick Start Guide
+# Python API Guide
 
-## Installation
+Module-by-module usage of the core library in `src/core/`. Installation and the quick start are in the [README](../README.md).
 
-```bash
-# Clone the project
-cd verinode
+Examples that call an LLM use Ollama by default. To use Gemini instead, set `VERINODE_GEMINI_API_KEY` and build the components with the factories, which read `VERINODE_EXTRACTOR_BACKEND` and `VERINODE_CHECKER_BACKEND`:
 
-# Install core dependencies
-pip install numpy sentence-transformers ollama click rich
+```python
+from src.core.fact_extraction import create_fact_extractor
+from src.core.llm_contradiction import create_contradiction_checker
 
-# Optional: fast vector search
-pip install faiss-cpu
-
-# Install Ollama from https://ollama.com/download
-# Then pull a model (qwen3:14b recommended for RTX 3080 / 10GB VRAM):
-ollama pull qwen3:14b
-
-# Run unit tests (595 tests, no Ollama server needed)
-pytest tests/
-
-# Run integration tests (requires running Ollama server + pulled model)
-pytest tests/ --run-integration
-
-# Run the chemistry demo (no Ollama needed)
-python examples/chemistry_demo.py
-
-# Run the pipeline demo (requires Ollama)
-python examples/pipeline_demo.py
+extractor = create_fact_extractor()        # or create_fact_extractor(backend="gemini")
+checker = create_contradiction_checker()   # or create_contradiction_checker(backend="gemini")
 ```
 
 ## CLI Usage
@@ -37,12 +20,12 @@ The CLI wraps all core operations. Run via `python -m src.cli`.
 # Global options
 python -m src.cli --graph my_graph.json --model qwen3:14b COMMAND
 
-# Ingest text (requires Ollama)
+# Ingest text (requires an LLM backend)
 python -m src.cli ingest "Water boils at 100 degrees Celsius." --domain chemistry
 python -m src.cli ingest paper.txt --file --source-type paper --source-title "Chemistry 101" --source-quality 0.95
 python -m src.cli ingest textbook.txt --file --batch  # each paragraph as separate passage
 
-# Read-only commands (no Ollama needed)
+# Read-only commands (no LLM needed)
 python -m src.cli stats                              # graph statistics
 python -m src.cli list --domain chemistry --limit 10 # list nodes (filterable)
 python -m src.cli list --type fact --sort text        # sort by text
@@ -51,7 +34,7 @@ python -m src.cli explain a1b2c3d4                   # confidence explanation
 python -m src.cli trace a1b2c3d4                     # trace to root sources
 python -m src.cli anomalies --threshold 0.15         # detect anomalies
 
-# Query and hypothesis (requires Ollama for embedding)
+# Query and hypothesis (local embeddings, no LLM needed)
 python -m src.cli query "What is the boiling point of water?" --show-chains
 python -m src.cli hypothesis "Gold is a reactive metal" --show-evidence
 
@@ -581,29 +564,3 @@ for anomaly in anomalies:
     explanation = reasoner.explain_node(graph, anomaly['node_id'])
     trace = conf_engine.trace_confidence_source(graph, anomaly['node_id'])
 ```
-
-## Running Tests
-
-```bash
-# All 595 unit tests (mocked, no Ollama needed)
-pytest tests/
-
-# Verbose output
-pytest tests/ -v
-
-# Include integration tests (requires running Ollama + pulled model)
-pytest tests/ -v --run-integration
-
-# Include calibration tests (uses real datasets, no Ollama needed)
-pytest tests/ -v --run-calibration
-
-# Single module
-pytest tests/test_cli.py -v
-pytest tests/test_reasoning.py -v
-pytest tests/test_pipeline.py -v
-pytest tests/test_llm_contradiction.py -v
-```
-
-No Ollama server or API keys needed for unit tests. All LLM calls are mocked.
-Integration tests (49 tests) require `--run-integration` flag and a running Ollama server.
-Calibration tests (46 tests) require `--run-calibration` flag and use real datasets.
