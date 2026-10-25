@@ -1,15 +1,17 @@
 # Verinode — Benchmarks and Performance
 
-All performance data in one place. Individual results are linked from [ROADMAP.md](../ROADMAP.md), [architecture.md](architecture.md), and [research.md](research.md).
+Results from development runs in February 2026. Unless stated otherwise they used Ollama with `qwen3:14b` on a single consumer GPU (RTX 3080, 10 GB). The test sets are small, so read the numbers as indications, not precise accuracy figures.
+
+**Reproducibility.** The vulnerability benchmark, the 150-fact stress tests and the calibration benchmarks can be re-run with the scripts in [`benchmarks/`](../benchmarks). The chemistry-slab and scale-testing sections are kept for reference, but the scripts and intermediate data files they mention were not included in this repository.
 
 ---
 
 ## Vulnerability Resistance Benchmark (Feb 2026)
 
-Side-by-side comparison of bare qwen3:14b vs qwen3:14b + Verinode on 75 test cases across 5 vulnerability categories. Uses the 215-node stress test graph (`data/stress_test_graph.json`) as the knowledge base.
+Side-by-side comparison of bare qwen3:14b vs qwen3:14b + Verinode on 75 test cases across 5 vulnerability categories. Uses the stress test graph (`data/stress_test_graph.json`) as the knowledge base. The bundled copy has 150 nodes; the original runs reported 215 nodes, so it may not be the exact graph used.
 
-**Scripts**: `examples/benchmark_vulnerability.py`, `examples/benchmark_test_cases.py`
-**Full results**: `data/benchmark_results.json`
+**Scripts**: `benchmarks/benchmark_vulnerability.py`, `benchmarks/benchmark_test_cases.py`, `benchmarks/build_stress_graph.py`
+**Full results**: written to `data/benchmark_results.json` by `--output` (not included)
 
 ### Summary Table
 
@@ -122,7 +124,7 @@ Tests the ability to catch small numerical errors — a known LLM weakness. All 
 
 Graph size and source quality impact on verification accuracy. Tests 35 claims (10 true, 10 false, 8 planted errors, 7 subtle numerical) across 5 composable chemistry graph slabs of different sizes and quality tiers.
 
-**Script**: `examples/benchmark_chemistry_slabs.py`
+**Script**: `benchmark_chemistry_slabs.py` (not included)
 **Full results**: `data/slab_benchmark_combined.json`
 
 ### Summary Table

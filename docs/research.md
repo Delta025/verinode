@@ -389,7 +389,7 @@ Full methodology, per-case breakdowns, and analysis: [benchmarks.md](benchmarks.
 
 ## Future Research Directions
 
-For detailed implementation plans, see `ROADMAP.md`. Below are the research foundations.
+Planned directions are summarised in [ROADMAP.md](../ROADMAP.md). Below are the research foundations.
 
 ### Neuroplasticity-Inspired Graph Dynamics
 Biological neural networks update locally, strengthen frequently-used pathways, and let unused connections decay. Verinode's existing `access_count` and `last_validated` fields provide the hooks for staleness decay and pathway strengthening.

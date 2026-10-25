@@ -618,7 +618,7 @@ A critical analysis of how each module contributes to (or fails to contribute to
 
 ### Trust bootstrapping strategy
 
-See ROADMAP.md for the full truth verification strategy. In summary:
+The truth verification strategy, in summary:
 1. Seed the graph with vetted information from trusted sources
 2. New inputs are checked against the seed graph via all 5 verification layers
 3. Untrusted inputs enter as PROVISIONAL until corroborated
