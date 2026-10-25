@@ -14,14 +14,20 @@ LLMs store what they know in opaque weights, so they cannot say where a fact cam
 
 ```mermaid
 flowchart LR
-    T[Source text] --> X[LLM fact extraction]
-    X --> F[Quote check and<br/>source-quality cap]
-    F --> D[Deduplication and<br/>contradiction check]
+    subgraph Ingest
+        direction TB
+        T[Source text] --> X[LLM fact extraction]
+        X --> F[Quote check and<br/>source-quality cap]
+        F --> D[Deduplication and<br/>contradiction check]
+    end
     D --> G[(Knowledge graph)]
-    C[Claim] --> R[Hybrid retrieval<br/>embeddings + BM25 + reranker]
     G --> R
-    R --> L[LLM: supports / contradicts / irrelevant]
-    L --> V[Verdict with evidence]
+    subgraph Verify
+        direction TB
+        C[Claim] --> R[Hybrid retrieval<br/>embeddings + BM25 + reranker]
+        R --> L[LLM: supports /<br/>contradicts / irrelevant]
+        L --> V[Verdict with evidence]
+    end
 ```
 
 - **Ingestion** extracts atomic facts from text, checks each one against its source passage, merges duplicates, flags conflicts with existing knowledge and links dependent facts.
