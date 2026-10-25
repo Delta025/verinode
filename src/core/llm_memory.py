@@ -14,21 +14,22 @@ Usage:
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
-from .node import KnowledgeNode, Source
-from .graph import KnowledgeGraph
 from .confidence import ConfidenceEngine
+from .graph import KnowledgeGraph
+from .node import KnowledgeNode, Source
 from .reasoning import ReasoningEngine
-
 
 # ------------------------------------------------------------------
 # Data structures
 # ------------------------------------------------------------------
 
+
 @dataclass
 class MemoryFact:
     """Single fact with full provenance for LLM consumption."""
+
     node_id: str
     text: str
     confidence: float
@@ -40,6 +41,7 @@ class MemoryFact:
 @dataclass
 class MemoryQueryResult:
     """Structured query result for LLM consumption."""
+
     query: str
     facts: List[MemoryFact] = field(default_factory=list)
     summary: str = ""
@@ -51,6 +53,7 @@ class MemoryQueryResult:
 @dataclass
 class MemoryIngestResult:
     """Result of LLM submitting text for ingestion."""
+
     action: str  # "added" | "duplicate" | "contradicted" | "rejected"
     node_id: Optional[str] = None
     confidence: float = 0.0
@@ -62,6 +65,7 @@ class MemoryIngestResult:
 # Helpers
 # ------------------------------------------------------------------
 
+
 def _source_to_dict(source: Source) -> Dict[str, Any]:
     """Convert a Source to a flat dictionary."""
     return {
@@ -69,7 +73,7 @@ def _source_to_dict(source: Source) -> Dict[str, Any]:
         "type": source.source_type,
         "quality": source.quality_score,
         "author": source.author,
-        "date": source.date.isoformat() if source.date and hasattr(source.date, 'isoformat') else None,
+        "date": source.date.isoformat() if source.date and hasattr(source.date, "isoformat") else None,
     }
 
 
@@ -114,6 +118,7 @@ def _compute_coverage(fact_count: int, overall_confidence: float) -> str:
 # ------------------------------------------------------------------
 # LLM Memory facade
 # ------------------------------------------------------------------
+
 
 class LLMMemory:
     """
@@ -199,9 +204,7 @@ class LLMMemory:
 
             chains = None
             if include_chains:
-                chains = self.reasoning_engine.backward_chain(
-                    self.graph, nid, max_depth=3
-                )
+                chains = self.reasoning_engine.backward_chain(self.graph, nid, max_depth=3)
 
             facts.append(_node_to_memory_fact(node, chains))
 
@@ -262,13 +265,8 @@ class LLMMemory:
             results = self.embedding_engine.search(topic, k=k, graph=self.graph)
         else:
             # Fallback to keyword search via reasoning engine
-            candidates = self.reasoning_engine._find_candidates(
-                self.graph, topic, self.embedding_engine, k
-            )
-            results = [
-                {"node_id": nid, "score": score}
-                for nid, score in candidates
-            ]
+            candidates = self.reasoning_engine._find_candidates(self.graph, topic, self.embedding_engine, k)
+            results = [{"node_id": nid, "score": score} for nid, score in candidates]
 
         facts: List[MemoryFact] = []
         for r in results:
@@ -311,10 +309,7 @@ class LLMMemory:
             "verdict": result.verdict.value,
             "confidence": result.confidence,
             "explanation": result.explanation,
-            "evidence_count": (
-                len(result.supporting_evidence) +
-                len(result.contradicting_evidence)
-            ),
+            "evidence_count": (len(result.supporting_evidence) + len(result.contradicting_evidence)),
         }
 
     # ------------------------------------------------------------------
@@ -397,11 +392,13 @@ class LLMMemory:
             for cid in v.contradiction_node_ids:
                 cnode = self.graph.get_node(cid)
                 if cnode:
-                    contradictions.append({
-                        "node_id": cid,
-                        "text": cnode.text,
-                        "confidence": cnode.confidence,
-                    })
+                    contradictions.append(
+                        {
+                            "node_id": cid,
+                            "text": cnode.text,
+                            "confidence": cnode.confidence,
+                        }
+                    )
 
         return MemoryIngestResult(
             action=action,

@@ -11,14 +11,15 @@ Run with:
 
 import os
 import time
+
 import pytest
 
-from src.core.graph import KnowledgeGraph
-from src.core.node import KnowledgeNode, NodeType, Source
-from src.core.embeddings import EmbeddingEngine
-from src.core.dependency_detection import DependencyDetector, RelationType
 from src.core.confidence import ConfidenceEngine
+from src.core.dependency_detection import DependencyDetector
+from src.core.embeddings import EmbeddingEngine
+from src.core.graph import KnowledgeGraph
 from src.core.metrics import load_jsonl
+from src.core.node import KnowledgeNode, NodeType, Source
 
 pytestmark = pytest.mark.calibration
 
@@ -28,17 +29,14 @@ ARC_PATH = os.path.join("data", "calibration", "arc_sentences.jsonl")
 
 # ── Circular Dependency Tests (unit) ───────────────────────────────────
 
-class TestCircularDependencies:
 
+class TestCircularDependencies:
     def test_propagation_terminates(self):
         """Confidence propagation should terminate on circular graphs."""
         graph = KnowledgeGraph()
-        node_a = KnowledgeNode(text="Fact A", node_type=NodeType.FACT,
-                                confidence=0.8, domain="test")
-        node_b = KnowledgeNode(text="Fact B", node_type=NodeType.FACT,
-                                confidence=0.8, domain="test")
-        node_c = KnowledgeNode(text="Fact C", node_type=NodeType.FACT,
-                                confidence=0.8, domain="test")
+        node_a = KnowledgeNode(text="Fact A", node_type=NodeType.FACT, confidence=0.8, domain="test")
+        node_b = KnowledgeNode(text="Fact B", node_type=NodeType.FACT, confidence=0.8, domain="test")
+        node_c = KnowledgeNode(text="Fact C", node_type=NodeType.FACT, confidence=0.8, domain="test")
 
         graph.add_node(node_a)
         graph.add_node(node_b)
@@ -60,7 +58,7 @@ class TestCircularDependencies:
         # Should terminate without hanging or stack overflow
         t0 = time.perf_counter()
         try:
-            affected = conf_engine.propagate_confidence_update(graph, node_a.id)
+            conf_engine.propagate_confidence_update(graph, node_a.id)
             elapsed = time.perf_counter() - t0
             assert elapsed < 5.0, f"Propagation took {elapsed:.1f}s (too slow for cycle)"
         except RecursionError:
@@ -71,8 +69,7 @@ class TestCircularDependencies:
         graph = KnowledgeGraph()
         nodes = []
         for i in range(5):
-            node = KnowledgeNode(text=f"Circular fact {i}", node_type=NodeType.FACT,
-                                  confidence=0.8, domain="test")
+            node = KnowledgeNode(text=f"Circular fact {i}", node_type=NodeType.FACT, confidence=0.8, domain="test")
             graph.add_node(node)
             nodes.append(node)
 
@@ -97,28 +94,24 @@ class TestCircularDependencies:
 
         # Should be same (or very close)
         for c1, c2 in zip(confs_after_1, confs_after_2):
-            assert abs(c1 - c2) < 0.1, (
-                f"Confidence unstable: {c1:.3f} → {c2:.3f}"
-            )
+            assert abs(c1 - c2) < 0.1, f"Confidence unstable: {c1:.3f} → {c2:.3f}"
 
 
 # ── Malformed Input Tests (unit) ───────────────────────────────────────
 
-class TestMalformedInputs:
 
+class TestMalformedInputs:
     def test_empty_string_node(self):
         """Empty string should create a node without crashing."""
         graph = KnowledgeGraph()
-        node = KnowledgeNode(text="", node_type=NodeType.FACT,
-                              confidence=0.5, domain="test")
+        node = KnowledgeNode(text="", node_type=NodeType.FACT, confidence=0.5, domain="test")
         graph.add_node(node)
         assert node.id in graph.nodes
 
     def test_whitespace_node(self):
         """Whitespace-only text should create a node without crashing."""
         graph = KnowledgeGraph()
-        node = KnowledgeNode(text="   \n\t  ", node_type=NodeType.FACT,
-                              confidence=0.5, domain="test")
+        node = KnowledgeNode(text="   \n\t  ", node_type=NodeType.FACT, confidence=0.5, domain="test")
         graph.add_node(node)
         assert node.id in graph.nodes
 
@@ -174,8 +167,8 @@ class TestMalformedInputs:
 
 # ── Duplicate Flooding Tests (unit, needs embeddings) ──────────────────
 
-class TestDuplicateFlooding:
 
+class TestDuplicateFlooding:
     @pytest.fixture(scope="class")
     def embed(self):
         return EmbeddingEngine()
@@ -184,8 +177,7 @@ class TestDuplicateFlooding:
         """Exact same text should be detected as duplicate."""
         graph = KnowledgeGraph()
         text = "Water boils at 100 degrees Celsius at sea level."
-        node = KnowledgeNode(text=text, node_type=NodeType.FACT,
-                              confidence=0.8, domain="science")
+        node = KnowledgeNode(text=text, node_type=NodeType.FACT, confidence=0.8, domain="science")
         graph.add_node(node)
         embed.index_graph(graph)
 
@@ -200,6 +192,7 @@ class TestDuplicateFlooding:
         vec_b = embed.embed_text(text_b)
 
         import numpy as np
+
         dot = np.dot(vec_a, vec_b)
         norm = np.linalg.norm(vec_a) * np.linalg.norm(vec_b)
         sim = dot / norm if norm > 0 else 0
@@ -219,8 +212,7 @@ class TestDuplicateFlooding:
         ]
 
         # Add first
-        first = KnowledgeNode(text=paraphrases[0], node_type=NodeType.FACT,
-                               confidence=0.8, domain="science")
+        first = KnowledgeNode(text=paraphrases[0], node_type=NodeType.FACT, confidence=0.8, domain="science")
         graph.add_node(first)
         embed.index_graph(graph)
 
@@ -228,22 +220,19 @@ class TestDuplicateFlooding:
         for text in paraphrases[1:]:
             results = embed.search(text, k=1, threshold=0.85)
             if not results:
-                node = KnowledgeNode(text=text, node_type=NodeType.FACT,
-                                      confidence=0.8, domain="science")
+                node = KnowledgeNode(text=text, node_type=NodeType.FACT, confidence=0.8, domain="science")
                 graph.add_node(node)
                 embed.add_to_index(node)
                 unique += 1
 
         # At threshold 0.85, most should be caught
-        assert unique < len(paraphrases), (
-            f"All {len(paraphrases)} paraphrases added as unique (dedup not working)"
-        )
+        assert unique < len(paraphrases), f"All {len(paraphrases)} paraphrases added as unique (dedup not working)"
 
 
 # ── TruthfulQA Adversarial Tests (integration, requires Ollama) ───────
 
-class TestTruthfulQAAdversarial:
 
+class TestTruthfulQAAdversarial:
     pytestmark = [pytest.mark.calibration, pytest.mark.integration]
 
     def test_incorrect_answers_not_all_accepted(self):
@@ -276,7 +265,8 @@ class TestTruthfulQAAdversarial:
             try:
                 pipeline.ingest(
                     f"{q['question']} {q['best_answer']}",
-                    source=source_correct, domain="general",
+                    source=source_correct,
+                    domain="general",
                 )
             except Exception:
                 pass
@@ -306,8 +296,8 @@ class TestTruthfulQAAdversarial:
 
 # ── Low-Quality Flooding Tests (integration, requires Ollama) ──────────
 
-class TestLowQualityFlooding:
 
+class TestLowQualityFlooding:
     pytestmark = [pytest.mark.calibration, pytest.mark.integration]
 
     def test_low_quality_caps_confidence(self):
@@ -344,6 +334,4 @@ class TestLowQualityFlooding:
             max_confidence = max(n.confidence for n in graph.nodes.values())
             # Source quality is 0.1, so confidence should be capped around there
             # Allow some margin for the cap logic
-            assert max_confidence <= 0.5, (
-                f"Max confidence {max_confidence:.2f} too high for quality=0.1 source"
-            )
+            assert max_confidence <= 0.5, f"Max confidence {max_confidence:.2f} too high for quality=0.1 source"

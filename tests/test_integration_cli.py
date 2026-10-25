@@ -28,6 +28,7 @@ pytestmark = pytest.mark.integration
 # Helpers
 # ------------------------------------------------------------------
 
+
 def _temp_graph_path():
     """Return a path for a temporary graph file (empty)."""
     fd, path = tempfile.mkstemp(suffix=".json")
@@ -42,6 +43,7 @@ def _temp_graph_path():
 # Tests
 # ------------------------------------------------------------------
 
+
 class TestCLIIngestion:
     """Test ingestion via the CLI with live Ollama."""
 
@@ -51,16 +53,23 @@ class TestCLIIngestion:
         try:
             runner = CliRunner()
             # Ingest
-            result = runner.invoke(cli, [
-                "--graph", path,
-                "ingest",
-                "Water boils at 100 degrees Celsius at sea level. "
-                "Water freezes at 0 degrees Celsius.",
-                "--domain", "chemistry",
-                "--source-type", "textbook",
-                "--source-title", "Chemistry 101",
-                "--source-quality", "0.9",
-            ])
+            result = runner.invoke(
+                cli,
+                [
+                    "--graph",
+                    path,
+                    "ingest",
+                    "Water boils at 100 degrees Celsius at sea level. Water freezes at 0 degrees Celsius.",
+                    "--domain",
+                    "chemistry",
+                    "--source-type",
+                    "textbook",
+                    "--source-title",
+                    "Chemistry 101",
+                    "--source-quality",
+                    "0.9",
+                ],
+            )
             assert result.exit_code == 0, f"ingest failed: {result.output}"
             assert "ADDED" in result.output or "added" in result.output.lower()
 
@@ -81,11 +90,18 @@ class TestCLIIngestion:
 
         try:
             runner = CliRunner()
-            result = runner.invoke(cli, [
-                "--graph", path,
-                "ingest", text_path, "--file",
-                "--domain", "chemistry",
-            ])
+            result = runner.invoke(
+                cli,
+                [
+                    "--graph",
+                    path,
+                    "ingest",
+                    text_path,
+                    "--file",
+                    "--domain",
+                    "chemistry",
+                ],
+            )
             assert result.exit_code == 0, f"ingest --file failed: {result.output}"
         finally:
             os.unlink(path)
@@ -104,44 +120,62 @@ class TestCLIQuerying:
             json.dump({"nodes": [], "metadata": {}}, f)
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "--graph", self.graph_path,
-            "ingest",
-            "Water boils at 100 degrees Celsius. Ice melts at 0 degrees Celsius.",
-            "--domain", "chemistry",
-            "--source-quality", "0.9",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "--graph",
+                self.graph_path,
+                "ingest",
+                "Water boils at 100 degrees Celsius. Ice melts at 0 degrees Celsius.",
+                "--domain",
+                "chemistry",
+                "--source-quality",
+                "0.9",
+            ],
+        )
         assert result.exit_code == 0, f"Setup ingest failed: {result.output}"
 
     def test_query(self):
         """Query the populated graph."""
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "--graph", self.graph_path,
-            "query",
-            "What is the boiling point of water?",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "--graph",
+                self.graph_path,
+                "query",
+                "What is the boiling point of water?",
+            ],
+        )
         assert result.exit_code == 0
         assert "Answer" in result.output or "Query" in result.output
 
     def test_hypothesis(self):
         """Test a hypothesis against the graph."""
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "--graph", self.graph_path,
-            "hypothesis",
-            "Water boils at 100 degrees Celsius",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "--graph",
+                self.graph_path,
+                "hypothesis",
+                "Water boils at 100 degrees Celsius",
+            ],
+        )
         assert result.exit_code == 0
         assert "Hypothesis" in result.output
 
     def test_list_after_ingestion(self):
         """List nodes after ingestion."""
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "--graph", self.graph_path,
-            "list",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "--graph",
+                self.graph_path,
+                "list",
+            ],
+        )
         assert result.exit_code == 0
         # Should contain at least one chemistry node
         assert "chemistry" in result.output.lower() or "fact" in result.output.lower()
@@ -159,20 +193,30 @@ class TestCLISaveLoad:
         runner = CliRunner()
 
         # Ingest
-        result = runner.invoke(cli, [
-            "--graph", graph_path,
-            "ingest",
-            "Silver has the symbol Ag.",
-            "--domain", "chemistry",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "--graph",
+                graph_path,
+                "ingest",
+                "Silver has the symbol Ag.",
+                "--domain",
+                "chemistry",
+            ],
+        )
         assert result.exit_code == 0
 
         # Save to new location
         copy_path = str(tmp_path / "copy.json")
-        result = runner.invoke(cli, [
-            "--graph", graph_path,
-            "save", copy_path,
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "--graph",
+                graph_path,
+                "save",
+                copy_path,
+            ],
+        )
         assert result.exit_code == 0
 
         # Load the copy and check stats
@@ -193,13 +237,19 @@ class TestCLIAnomalies:
         runner = CliRunner()
 
         # Ingest
-        result = runner.invoke(cli, [
-            "--graph", graph_path,
-            "ingest",
-            "Iron is a metal. Iron has the symbol Fe.",
-            "--domain", "chemistry",
-            "--source-quality", "0.9",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "--graph",
+                graph_path,
+                "ingest",
+                "Iron is a metal. Iron has the symbol Fe.",
+                "--domain",
+                "chemistry",
+                "--source-quality",
+                "0.9",
+            ],
+        )
         assert result.exit_code == 0
 
         # Run anomalies

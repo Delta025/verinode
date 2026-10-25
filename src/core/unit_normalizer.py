@@ -15,8 +15,8 @@ Canonical forms:
 All conversions are pure text transforms — no external dependencies.
 """
 
-import re
 import logging
+import re
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -120,7 +120,7 @@ _MASS_TO_KG = {
     "grams": 0.001,
     "tonne": 1000.0,
     "tonnes": 1000.0,
-    "ton": 907.185,       # US short ton
+    "ton": 907.185,  # US short ton
     "tons": 907.185,
 }
 
@@ -151,6 +151,7 @@ _AREA_TO_KM2 = {
 # Temperature conversion (non-linear)
 # ------------------------------------------------------------------
 
+
 def _convert_temperature(value: float, unit: str) -> tuple:
     """Convert a temperature to Celsius. Returns (value_celsius, '°C')."""
     unit_lower = unit.lower().strip("° ")
@@ -165,6 +166,7 @@ def _convert_temperature(value: float, unit: str) -> tuple:
 # ------------------------------------------------------------------
 # Build regex patterns
 # ------------------------------------------------------------------
+
 
 def _build_unit_pattern(unit_dict: dict) -> str:
     """Build alternation pattern from unit dictionary keys, longest first."""
@@ -208,6 +210,7 @@ _RE_TEMP = re.compile(
 # Core conversion functions
 # ------------------------------------------------------------------
 
+
 def _convert_match(match: re.Match, factor_dict: dict, canonical_unit: str) -> str:
     """Convert a regex match (number + optional multiplier + unit) to canonical form."""
     num_str = match.group(1)
@@ -249,6 +252,7 @@ def _convert_temp_match(match: re.Match) -> str:
 # Public API
 # ------------------------------------------------------------------
 
+
 def normalize_number_formats(text: str) -> str:
     """
     Strip commas from numbers in text.
@@ -256,6 +260,7 @@ def normalize_number_formats(text: str) -> str:
     ``"384,400 km"`` → ``"384400 km"``
     ``"1,234,567"`` → ``"1234567"``
     """
+
     def _strip_commas(m: re.Match) -> str:
         return m.group(0).replace(",", "")
 
@@ -289,18 +294,10 @@ def normalize_units(text: str) -> str:
         return text
 
     # Apply conversions in order (areas first — "sq mi" before "mi")
-    result = _RE_AREA.sub(
-        lambda m: _convert_match(m, _AREA_TO_KM2, "km²"), text
-    )
-    result = _RE_SPEED.sub(
-        lambda m: _convert_match(m, _SPEED_TO_KMH, "km/h"), result
-    )
-    result = _RE_DIST.sub(
-        lambda m: _convert_match(m, _DIST_TO_KM, "km"), result
-    )
-    result = _RE_MASS.sub(
-        lambda m: _convert_match(m, _MASS_TO_KG, "kg"), result
-    )
+    result = _RE_AREA.sub(lambda m: _convert_match(m, _AREA_TO_KM2, "km²"), text)
+    result = _RE_SPEED.sub(lambda m: _convert_match(m, _SPEED_TO_KMH, "km/h"), result)
+    result = _RE_DIST.sub(lambda m: _convert_match(m, _DIST_TO_KM, "km"), result)
+    result = _RE_MASS.sub(lambda m: _convert_match(m, _MASS_TO_KG, "kg"), result)
     result = _RE_TEMP.sub(_convert_temp_match, result)
 
     # Normalize number formatting (strip commas)

@@ -23,8 +23,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import pytest
-from core.llm_contradiction import create_contradiction_checker
 
+from core.llm_contradiction import create_contradiction_checker
 
 # All tests require a running Ollama server
 pytestmark = pytest.mark.integration
@@ -33,6 +33,7 @@ pytestmark = pytest.mark.integration
 # ------------------------------------------------------------------
 # Fixtures
 # ------------------------------------------------------------------
+
 
 @pytest.fixture(scope="module")
 def checker():
@@ -46,6 +47,7 @@ def checker():
 # ------------------------------------------------------------------
 # Tests: contradiction types
 # ------------------------------------------------------------------
+
 
 class TestContradictionTypes:
     """Test that the LLM correctly identifies different contradiction types."""
@@ -84,6 +86,7 @@ class TestContradictionTypes:
 # Tests: false positive guards
 # ------------------------------------------------------------------
 
+
 class TestFalsePositiveGuards:
     """Test that the LLM does NOT flag non-contradictions."""
 
@@ -115,6 +118,7 @@ class TestFalsePositiveGuards:
 # ------------------------------------------------------------------
 # Tests: pipeline integration
 # ------------------------------------------------------------------
+
 
 class TestPipelineIntegration:
     """Test LLM contradiction detection integrated with the ingestion pipeline."""
@@ -148,15 +152,13 @@ class TestPipelineIntegration:
 
         # Should be flagged (numerical contradiction)
         flagged = [v for v in result.verdicts if v.action == "flagged"]
-        assert len(flagged) >= 1, (
-            f"Expected flagged verdict, got: "
-            f"{[(v.action, v.reason) for v in result.verdicts]}"
-        )
+        assert len(flagged) >= 1, f"Expected flagged verdict, got: {[(v.action, v.reason) for v in result.verdicts]}"
 
 
 # ------------------------------------------------------------------
 # Tests: fallback behaviour
 # ------------------------------------------------------------------
+
 
 class TestFallback:
     """Test graceful degradation when Ollama is unavailable."""
@@ -168,9 +170,9 @@ class TestFallback:
 
     def test_dependency_detector_with_live_llm(self, checker):
         """DependencyDetector correctly uses live LLM for contradiction classification."""
-        from core.node import KnowledgeNode, NodeType
-        from core.graph import KnowledgeGraph
         from core.dependency_detection import DependencyDetector, RelationType
+        from core.graph import KnowledgeGraph
+        from core.node import KnowledgeNode, NodeType
 
         graph = KnowledgeGraph()
         node_a = KnowledgeNode(
@@ -199,8 +201,7 @@ class TestFallback:
 
         contradictions = [d for d in deps if d.relation == RelationType.CONTRADICTS]
         assert len(contradictions) >= 1, (
-            f"Expected contradiction, got relations: "
-            f"{[(d.relation, d.evidence) for d in deps]}"
+            f"Expected contradiction, got relations: {[(d.relation, d.evidence) for d in deps]}"
         )
         # Evidence should mention LLM
         assert any("LLM" in d.evidence for d in contradictions)

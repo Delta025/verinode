@@ -13,20 +13,21 @@ Detected relationship types:
 - ELABORATES:  B adds detail to A.
 """
 
+import logging
+import re
 from dataclasses import dataclass
 from enum import Enum
-import logging
 from typing import List, Optional, Set, Tuple
-import re
 
-from .node import KnowledgeNode, NodeType
 from .graph import KnowledgeGraph
+from .node import KnowledgeNode, NodeType
 
 logger = logging.getLogger(__name__)
 
 
 class RelationType(Enum):
     """Types of relationships that can be detected between nodes."""
+
     DEPENDS_ON = "depends_on"
     SUPPORTS = "supports"
     CONTRADICTS = "contradicts"
@@ -36,11 +37,12 @@ class RelationType(Enum):
 @dataclass
 class DetectedDependency:
     """A detected dependency between two nodes."""
-    source_id: str       # The node that is depended upon (prerequisite)
-    target_id: str       # The node that depends on the source
+
+    source_id: str  # The node that is depended upon (prerequisite)
+    target_id: str  # The node that depends on the source
     relation: RelationType
-    confidence: float    # How confident we are in this detection [0, 1]
-    evidence: str        # Explanation of why this dependency was detected
+    confidence: float  # How confident we are in this detection [0, 1]
+    evidence: str  # Explanation of why this dependency was detected
 
 
 # ------------------------------------------------------------------
@@ -86,22 +88,89 @@ _DEFINITIONAL_PATTERNS = [
     r"\bmeans\b",
 ]
 
-_STOP_WORDS = frozenset({
-    "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
-    "have", "has", "had", "do", "does", "did", "will", "would", "could",
-    "should", "may", "might", "shall", "can", "to", "of", "in", "for",
-    "on", "with", "at", "by", "from", "as", "into", "through", "during",
-    "before", "after", "and", "but", "or", "nor", "not", "so", "yet",
-    "both", "either", "neither", "each", "every", "all", "any", "few",
-    "more", "most", "other", "some", "such", "no", "only", "own", "same",
-    "than", "too", "very", "just", "it", "its", "that", "this", "these",
-    "those",
-})
+_STOP_WORDS = frozenset(
+    {
+        "the",
+        "a",
+        "an",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "have",
+        "has",
+        "had",
+        "do",
+        "does",
+        "did",
+        "will",
+        "would",
+        "could",
+        "should",
+        "may",
+        "might",
+        "shall",
+        "can",
+        "to",
+        "of",
+        "in",
+        "for",
+        "on",
+        "with",
+        "at",
+        "by",
+        "from",
+        "as",
+        "into",
+        "through",
+        "during",
+        "before",
+        "after",
+        "and",
+        "but",
+        "or",
+        "nor",
+        "not",
+        "so",
+        "yet",
+        "both",
+        "either",
+        "neither",
+        "each",
+        "every",
+        "all",
+        "any",
+        "few",
+        "more",
+        "most",
+        "other",
+        "some",
+        "such",
+        "no",
+        "only",
+        "own",
+        "same",
+        "than",
+        "too",
+        "very",
+        "just",
+        "it",
+        "its",
+        "that",
+        "this",
+        "these",
+        "those",
+    }
+)
 
 
 # ------------------------------------------------------------------
 # Engine
 # ------------------------------------------------------------------
+
 
 class DependencyDetector:
     """
@@ -179,7 +248,9 @@ class DependencyDetector:
                 continue
 
             dep = self._classify_relationship(
-                src, tgt, similarity,
+                src,
+                tgt,
+                similarity,
                 contradiction_checker=contradiction_checker,
             )
             if dep and dep.confidence >= self.dependency_confidence_threshold:
@@ -231,7 +302,9 @@ class DependencyDetector:
                 continue
 
             dep = self._classify_relationship(
-                other, node, similarity,
+                other,
+                node,
+                similarity,
                 contradiction_checker=contradiction_checker,
             )
             if dep and dep.confidence >= self.dependency_confidence_threshold:
@@ -270,7 +343,9 @@ class DependencyDetector:
                     if graph.would_create_cycle(dep.source_id, dep.target_id):
                         logger.warning(
                             "Skipping dependency %s -> %s (%s): would create cycle",
-                            dep.source_id, dep.target_id, dep.relation.value,
+                            dep.source_id,
+                            dep.target_id,
+                            dep.relation.value,
                         )
                         continue
                     tgt.add_predecessor(dep.source_id, dep.relation.value)
@@ -307,7 +382,8 @@ class DependencyDetector:
                 if nid not in embedding_engine._id_to_position:
                     continue
                 neighbors = embedding_engine.find_similar(
-                    nid, k=min(10, len(node_ids) - 1),
+                    nid,
+                    k=min(10, len(node_ids) - 1),
                     threshold=self.similarity_threshold,
                 )
                 for nb in neighbors:
@@ -321,7 +397,7 @@ class DependencyDetector:
                 node_a = graph.get_node(id_a)
                 if not node_a:
                     continue
-                for id_b in node_ids[i + 1:]:
+                for id_b in node_ids[i + 1 :]:
                     node_b = graph.get_node(id_b)
                     if not node_b:
                         continue
@@ -366,7 +442,10 @@ class DependencyDetector:
         if contradiction_checker is not None and similarity > 0.3:
             try:
                 llm_result = contradiction_checker.check_relevance(source.text, target.text)
-                if llm_result.relationship == "contradicts" and llm_result.confidence >= self.llm_contradiction_confidence:
+                if (
+                    llm_result.relationship == "contradicts"
+                    and llm_result.confidence >= self.llm_contradiction_confidence
+                ):
                     # LLM says contradiction → use its verdict
                     return DetectedDependency(
                         source_id=source.id,
@@ -379,8 +458,12 @@ class DependencyDetector:
                     # LLM overrides heuristic false positive — fall through
                     heuristic_says_contradiction = False
             except Exception:
-                logger.warning("LLM classification failed for %s→%s, falling back to heuristic",
-                               source.id, target.id, exc_info=True)
+                logger.warning(
+                    "LLM classification failed for %s→%s, falling back to heuristic",
+                    source.id,
+                    target.id,
+                    exc_info=True,
+                )
 
         if heuristic_says_contradiction:
             return DetectedDependency(
@@ -398,7 +481,7 @@ class DependencyDetector:
                 target_id=target.id,
                 relation=RelationType.DEPENDS_ON,
                 confidence=min(1.0, similarity + 0.2),
-                evidence=f"Target references concept defined in source",
+                evidence="Target references concept defined in source",
             )
 
         # 3. Check for causal dependency
@@ -478,12 +561,12 @@ class DependencyDetector:
             score = max(score, similarity * 0.9)
 
         # Numerical disagreement: same topic but different numbers
-        nums_a = set(re.findall(r'\b\d+(?:\.\d+)?\b', text_a))
-        nums_b = set(re.findall(r'\b\d+(?:\.\d+)?\b', text_b))
+        nums_a = set(re.findall(r"\b\d+(?:\.\d+)?\b", text_a))
+        nums_b = set(re.findall(r"\b\d+(?:\.\d+)?\b", text_b))
         if nums_a and nums_b and similarity > 0.5:
             # Both texts have numbers and are semantically similar
             # Check if they share some numbers but differ on others
-            shared = nums_a & nums_b
+            nums_a & nums_b
             diff_a = nums_a - nums_b
             diff_b = nums_b - nums_a
             if diff_a and diff_b:
@@ -492,15 +575,21 @@ class DependencyDetector:
 
         # Antonym pairs: common mutually exclusive terms
         antonym_pairs = [
-            (r'\btrue\b', r'\bfalse\b'), (r'\bincrease\b', r'\bdecrease\b'),
-            (r'\babove\b', r'\bbelow\b'), (r'\bbefore\b', r'\bafter\b'),
-            (r'\blarger\b', r'\bsmaller\b'), (r'\bmore\b', r'\bless\b'),
-            (r'\bhigher\b', r'\blower\b'), (r'\bpositive\b', r'\bnegative\b'),
-            (r'\bsuccess\b', r'\bfailure?\b'), (r'\bsafe\b', r'\bdangerous\b'),
+            (r"\btrue\b", r"\bfalse\b"),
+            (r"\bincrease\b", r"\bdecrease\b"),
+            (r"\babove\b", r"\bbelow\b"),
+            (r"\bbefore\b", r"\bafter\b"),
+            (r"\blarger\b", r"\bsmaller\b"),
+            (r"\bmore\b", r"\bless\b"),
+            (r"\bhigher\b", r"\blower\b"),
+            (r"\bpositive\b", r"\bnegative\b"),
+            (r"\bsuccess\b", r"\bfailure?\b"),
+            (r"\bsafe\b", r"\bdangerous\b"),
         ]
         for pat_x, pat_y in antonym_pairs:
-            if ((re.search(pat_x, text_a) and re.search(pat_y, text_b)) or
-                    (re.search(pat_y, text_a) and re.search(pat_x, text_b))):
+            if (re.search(pat_x, text_a) and re.search(pat_y, text_b)) or (
+                re.search(pat_y, text_a) and re.search(pat_x, text_b)
+            ):
                 score = max(score, similarity * 0.8)
                 break
 
@@ -525,7 +614,7 @@ class DependencyDetector:
         for pattern in _DEFINITIONAL_PATTERNS:
             match = re.search(pattern, def_text)
             if match:
-                subject = def_text[:match.start()].strip()
+                subject = def_text[: match.start()].strip()
                 # Check if any substantial word from subject appears in node_text
                 subject_words = set(subject.split()) - {"the", "a", "an"}
                 if subject_words and any(w in node_text for w in subject_words if len(w) > 2):

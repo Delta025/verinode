@@ -6,25 +6,26 @@ import conflict strategies, schema versioning, and edge cases.
 """
 
 import json
+
 import pytest
 
 from src.core.export import (
+    EXPORT_SCHEMA_VERSION,
+    MergeStats,
+    SubGraphExport,
     export_subgraph,
     export_to_json,
     import_from_json,
     import_subgraph,
     merge_graphs,
-    MergeStats,
-    SubGraphExport,
-    EXPORT_SCHEMA_VERSION,
 )
-from src.core.node import KnowledgeNode, Source
 from src.core.graph import KnowledgeGraph
-
+from src.core.node import KnowledgeNode, Source
 
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
+
 
 def make_node(text, confidence=0.8, domain="chemistry", node_id=None):
     """Create a test node."""
@@ -69,6 +70,7 @@ def build_test_graph():
 # ------------------------------------------------------------------
 # Tests: export_subgraph
 # ------------------------------------------------------------------
+
 
 class TestExportSubgraph:
     def test_filters_by_domain(self):
@@ -158,6 +160,7 @@ class TestExportSubgraph:
 # Tests: JSON round-trip
 # ------------------------------------------------------------------
 
+
 class TestJsonRoundTrip:
     def test_export_import_round_trip(self):
         graph = build_test_graph()
@@ -197,6 +200,7 @@ class TestJsonRoundTrip:
 # ------------------------------------------------------------------
 # Tests: import_subgraph
 # ------------------------------------------------------------------
+
 
 class TestImportSubgraph:
     def _make_export(self, nodes=None, edges=None, domain="chemistry"):
@@ -365,11 +369,13 @@ class TestImportSubgraph:
         valid_node_data = make_node("Valid fact", 0.8, "science", "valid-node").to_dict()
         valid_node_data.pop("embedding", None)
 
-        export = self._make_export(nodes=[
-            {"text": "orphan text", "confidence": 0.5},      # missing "id"
-            {"id": "bad-node-001"},                           # missing "text"
-            valid_node_data,                                  # valid
-        ])
+        export = self._make_export(
+            nodes=[
+                {"text": "orphan text", "confidence": 0.5},  # missing "id"
+                {"id": "bad-node-001"},  # missing "text"
+                valid_node_data,  # valid
+            ]
+        )
 
         stats = import_subgraph(target, export)
         # Only the valid node should be added
@@ -380,6 +386,7 @@ class TestImportSubgraph:
 # ------------------------------------------------------------------
 # Tests: merge_graphs
 # ------------------------------------------------------------------
+
 
 def build_graph_a():
     """Build a small chemistry graph for merge testing."""
@@ -678,6 +685,7 @@ class TestMergeGraphs:
 # Edge label preservation
 # ------------------------------------------------------------------
 
+
 class TestEdgeLabelPreservation:
     """Test that edge labels survive export/import/merge."""
 
@@ -691,10 +699,7 @@ class TestEdgeLabelPreservation:
         export = export_subgraph(graph, "chemistry", confidence_threshold=0.0)
 
         # Find the water_bp -> steam edge
-        edge_types = {
-            (e["source"], e["target"]): e.get("type", "depends_on")
-            for e in export.edges
-        }
+        edge_types = {(e["source"], e["target"]): e.get("type", "depends_on") for e in export.edges}
         assert edge_types.get(("water_bp", "steam")) == "supports"
 
     def test_import_restores_edge_types(self):
@@ -710,7 +715,7 @@ class TestEdgeLabelPreservation:
         json_data = import_from_json(json_str)
 
         target = KnowledgeGraph()
-        stats = import_subgraph(target, json_data)
+        import_subgraph(target, json_data)
 
         # Find the steam node and check its edge label
         steam_nodes = [n for n in target.nodes.values() if "Steam" in n.text]

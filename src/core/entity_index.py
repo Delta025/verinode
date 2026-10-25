@@ -10,9 +10,9 @@ with IDF weighting and document-length normalization for better
 ranking of rare, discriminating terms over common words.
 """
 
+import logging
 import math
 import re
-import logging
 from typing import Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
@@ -22,20 +22,114 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------
 
 STOP_WORDS: Set[str] = {
-    "a", "an", "the", "is", "are", "was", "were", "be", "been",
-    "being", "have", "has", "had", "do", "does", "did", "will",
-    "would", "could", "should", "may", "might", "shall", "can",
-    "of", "in", "to", "for", "with", "on", "at", "from", "by",
-    "about", "as", "into", "through", "during", "before", "after",
-    "above", "below", "between", "under", "over", "and", "but",
-    "or", "nor", "not", "no", "so", "if", "then", "than", "too",
-    "very", "just", "only", "also", "that", "this", "these",
-    "those", "it", "its", "he", "she", "they", "them", "his",
-    "her", "their", "we", "you", "i", "me", "my", "your", "our",
-    "which", "who", "whom", "what", "where", "when", "how", "all",
-    "each", "every", "both", "few", "more", "most", "other",
-    "some", "such", "any", "many", "much", "own", "same", "up",
-    "out", "off", "down", "there", "here",
+    "a",
+    "an",
+    "the",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "will",
+    "would",
+    "could",
+    "should",
+    "may",
+    "might",
+    "shall",
+    "can",
+    "of",
+    "in",
+    "to",
+    "for",
+    "with",
+    "on",
+    "at",
+    "from",
+    "by",
+    "about",
+    "as",
+    "into",
+    "through",
+    "during",
+    "before",
+    "after",
+    "above",
+    "below",
+    "between",
+    "under",
+    "over",
+    "and",
+    "but",
+    "or",
+    "nor",
+    "not",
+    "no",
+    "so",
+    "if",
+    "then",
+    "than",
+    "too",
+    "very",
+    "just",
+    "only",
+    "also",
+    "that",
+    "this",
+    "these",
+    "those",
+    "it",
+    "its",
+    "he",
+    "she",
+    "they",
+    "them",
+    "his",
+    "her",
+    "their",
+    "we",
+    "you",
+    "i",
+    "me",
+    "my",
+    "your",
+    "our",
+    "which",
+    "who",
+    "whom",
+    "what",
+    "where",
+    "when",
+    "how",
+    "all",
+    "each",
+    "every",
+    "both",
+    "few",
+    "more",
+    "most",
+    "other",
+    "some",
+    "such",
+    "any",
+    "many",
+    "much",
+    "own",
+    "same",
+    "up",
+    "out",
+    "off",
+    "down",
+    "there",
+    "here",
 }
 
 
@@ -46,7 +140,7 @@ def extract_content_words(text: str) -> Set[str]:
     Tokenizes on non-alphanumeric boundaries, lowercases, strips
     stopwords and single-character tokens.
     """
-    tokens = re.findall(r'[a-zA-Z0-9]+', text.lower())
+    tokens = re.findall(r"[a-zA-Z0-9]+", text.lower())
     return {t for t in tokens if len(t) >= 2 and t not in STOP_WORDS}
 
 
@@ -175,11 +269,7 @@ class EntityIndex:
                     overlap_counts[nid] = overlap_counts.get(nid, 0) + 1
 
         # Filter by min_overlap and sort descending
-        matches = [
-            (nid, count)
-            for nid, count in overlap_counts.items()
-            if count >= min_overlap
-        ]
+        matches = [(nid, count) for nid, count in overlap_counts.items() if count >= min_overlap]
         matches.sort(key=lambda x: x[1], reverse=True)
         return matches
 

@@ -1,11 +1,12 @@
 """Ingestion route: add text to the knowledge graph."""
 
 import logging
+
 from fastapi import APIRouter, HTTPException
 
 import src.api.state as state_mod
-from src.core.node import Source
 from src.api.schemas import IngestionRequest, IngestionResponse, VerdictResponse
+from src.core.node import Source
 
 logger = logging.getLogger(__name__)
 
@@ -56,13 +57,15 @@ def ingest_text(req: IngestionRequest):
 
     verdicts = []
     for v in result.verdicts:
-        verdicts.append(VerdictResponse(
-            fact_text=v.fact.text,
-            action=v.action,
-            node_id=v.node_id,
-            reason=v.reason,
-            contradiction_node_ids=v.contradiction_node_ids,
-        ))
+        verdicts.append(
+            VerdictResponse(
+                fact_text=v.fact.text,
+                action=v.action,
+                node_id=v.node_id,
+                reason=v.reason,
+                contradiction_node_ids=v.contradiction_node_ids,
+            )
+        )
 
     return IngestionResponse(
         total_extracted=result.total_extracted,

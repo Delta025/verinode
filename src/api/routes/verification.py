@@ -8,13 +8,14 @@ POST /api/simulate-retraction — What-if retraction analysis (read-only)
 from fastapi import APIRouter, HTTPException
 
 import src.api.state as state_mod
+
 from ..schemas import (
-    VerifyRequest,
-    VerifyResponse,
     EvidenceItem,
+    ImpactItem,
     RetractRequest,
     RetractResponse,
-    ImpactItem,
+    VerifyRequest,
+    VerifyResponse,
 )
 
 router = APIRouter(tags=["verification"])

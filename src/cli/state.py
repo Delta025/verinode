@@ -21,10 +21,10 @@ _src_root = str(Path(__file__).resolve().parent.parent.parent)
 if _src_root not in sys.path:
     sys.path.insert(0, _src_root)
 
-from src.core.graph import KnowledgeGraph
 from src.core.confidence import ConfidenceEngine
-from src.core.reasoning import ReasoningEngine
+from src.core.graph import KnowledgeGraph
 from src.core.neuroplasticity import NeuroplasticityEngine
+from src.core.reasoning import ReasoningEngine
 
 
 def _is_sqlite_path(path: str) -> bool:
@@ -140,15 +140,13 @@ class EngineState:
     def pipeline(self):
         """Return (or lazily create) the ``Pipeline``."""
         if self._pipeline is None:
-            from src.core.pipeline import Pipeline
             from src.core.fact_extraction import FactExtractionEngine
+            from src.core.pipeline import Pipeline
 
             try:
                 extractor = FactExtractionEngine(model=self.model)
             except Exception as exc:
-                raise click.ClickException(
-                    f"Cannot create fact extractor (is Ollama running?): {exc}"
-                )
+                raise click.ClickException(f"Cannot create fact extractor (is Ollama running?): {exc}")
 
             self._pipeline = Pipeline(
                 self.graph,
@@ -164,9 +162,7 @@ class EngineState:
         if self._contradiction_checker is None:
             from src.core.llm_contradiction import create_contradiction_checker
 
-            self._contradiction_checker = create_contradiction_checker(
-                model=self.model
-            )
+            self._contradiction_checker = create_contradiction_checker(model=self.model)
         return self._contradiction_checker
 
     @property

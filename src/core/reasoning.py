@@ -13,28 +13,29 @@ Key capabilities:
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Set, Tuple
 from enum import Enum
+from typing import List, Optional, Set, Tuple
 
-from .node import KnowledgeNode
-from .graph import KnowledgeGraph
 from .confidence import ConfidenceEngine
-
+from .graph import KnowledgeGraph
 
 # ------------------------------------------------------------------
 # Data structures
 # ------------------------------------------------------------------
 
+
 class InferenceStrategy(Enum):
     """Strategy for combining evidence along a chain."""
-    WEAKEST_LINK = "weakest_link"     # min(confidences)
-    PRODUCT = "product"               # product of confidences
-    AVERAGE = "average"               # mean of confidences
+
+    WEAKEST_LINK = "weakest_link"  # min(confidences)
+    PRODUCT = "product"  # product of confidences
+    AVERAGE = "average"  # mean of confidences
 
 
 @dataclass
 class ReasoningStep:
     """A single step in a reasoning chain."""
+
     node_id: str
     node_text: str
     confidence: float
@@ -45,6 +46,7 @@ class ReasoningStep:
 @dataclass
 class ReasoningChain:
     """A complete chain of reasoning from premises to conclusion."""
+
     steps: List[ReasoningStep]
     conclusion_confidence: float
     strategy: InferenceStrategy
@@ -68,6 +70,7 @@ class ReasoningChain:
 @dataclass
 class QueryResult:
     """Result of a query against the knowledge graph."""
+
     query: str
     answer_node_id: Optional[str]
     answer_text: str
@@ -79,6 +82,7 @@ class QueryResult:
 @dataclass
 class HypothesisResult:
     """Result of testing a hypothesis against the graph."""
+
     hypothesis: str
     supported: bool
     confidence: float
@@ -90,6 +94,7 @@ class HypothesisResult:
 # ------------------------------------------------------------------
 # Engine
 # ------------------------------------------------------------------
+
 
 class ReasoningEngine:
     """
@@ -149,14 +154,17 @@ class ReasoningEngine:
 
         chains = []
         self._forward_dfs(
-            graph, start_node_id,
-            current_chain=[ReasoningStep(
-                node_id=start.id,
-                node_text=start.text,
-                confidence=start.confidence,
-                step_type="premise",
-                explanation="Starting premise",
-            )],
+            graph,
+            start_node_id,
+            current_chain=[
+                ReasoningStep(
+                    node_id=start.id,
+                    node_text=start.text,
+                    confidence=start.confidence,
+                    step_type="premise",
+                    explanation="Starting premise",
+                )
+            ],
             visited={start_node_id},
             chains=chains,
             depth=0,
@@ -179,8 +187,7 @@ class ReasoningEngine:
         if not node:
             return
 
-        successors = [sid for sid in node.successor_nodes
-                      if sid in graph.nodes and sid not in visited]
+        successors = [sid for sid in node.successor_nodes if sid in graph.nodes and sid not in visited]
 
         if not successors or depth >= max_depth:
             # Leaf or max depth — emit chain
@@ -195,13 +202,15 @@ class ReasoningEngine:
                     explanation=chain_copy[-1].explanation,
                 )
                 conf = self._chain_confidence(chain_copy)
-                chains.append(ReasoningChain(
-                    steps=chain_copy,
-                    conclusion_confidence=conf,
-                    strategy=self.inference_strategy,
-                    is_valid=conf >= self.min_confidence,
-                    explanation=self._build_explanation(chain_copy),
-                ))
+                chains.append(
+                    ReasoningChain(
+                        steps=chain_copy,
+                        conclusion_confidence=conf,
+                        strategy=self.inference_strategy,
+                        is_valid=conf >= self.min_confidence,
+                        explanation=self._build_explanation(chain_copy),
+                    )
+                )
             return
 
         for succ_id in successors:
@@ -219,8 +228,7 @@ class ReasoningEngine:
 
             visited.add(succ_id)
             current_chain.append(step)
-            self._forward_dfs(graph, succ_id, current_chain, visited,
-                              chains, depth + 1, max_depth)
+            self._forward_dfs(graph, succ_id, current_chain, visited, chains, depth + 1, max_depth)
             current_chain.pop()
             visited.discard(succ_id)
 
@@ -254,14 +262,17 @@ class ReasoningEngine:
 
         chains = []
         self._backward_dfs(
-            graph, target_node_id,
-            current_chain=[ReasoningStep(
-                node_id=target.id,
-                node_text=target.text,
-                confidence=target.confidence,
-                step_type="conclusion",
-                explanation="Conclusion to be explained",
-            )],
+            graph,
+            target_node_id,
+            current_chain=[
+                ReasoningStep(
+                    node_id=target.id,
+                    node_text=target.text,
+                    confidence=target.confidence,
+                    step_type="conclusion",
+                    explanation="Conclusion to be explained",
+                )
+            ],
             visited={target_node_id},
             chains=chains,
             depth=0,
@@ -287,8 +298,7 @@ class ReasoningEngine:
         if not node:
             return
 
-        predecessors = [pid for pid in node.predecessor_nodes
-                        if pid in graph.nodes and pid not in visited]
+        predecessors = [pid for pid in node.predecessor_nodes if pid in graph.nodes and pid not in visited]
 
         if not predecessors or depth >= max_depth:
             # Root or max depth — emit chain
@@ -303,13 +313,15 @@ class ReasoningEngine:
                     explanation="Base evidence",
                 )
                 conf = self._chain_confidence(chain_copy)
-                chains.append(ReasoningChain(
-                    steps=chain_copy,
-                    conclusion_confidence=conf,
-                    strategy=self.inference_strategy,
-                    is_valid=conf >= self.min_confidence,
-                    explanation="",  # Built after reversal
-                ))
+                chains.append(
+                    ReasoningChain(
+                        steps=chain_copy,
+                        conclusion_confidence=conf,
+                        strategy=self.inference_strategy,
+                        is_valid=conf >= self.min_confidence,
+                        explanation="",  # Built after reversal
+                    )
+                )
             return
 
         for pred_id in predecessors:
@@ -327,8 +339,7 @@ class ReasoningEngine:
 
             visited.add(pred_id)
             current_chain.append(step)
-            self._backward_dfs(graph, pred_id, current_chain, visited,
-                               chains, depth + 1, max_depth)
+            self._backward_dfs(graph, pred_id, current_chain, visited, chains, depth + 1, max_depth)
             current_chain.pop()
             visited.discard(pred_id)
 
@@ -457,42 +468,50 @@ class ReasoningEngine:
                 contradicting.extend(chains)
                 # Also count standalone contradictions
                 if not chains:
-                    contradicting.append(ReasoningChain(
-                        steps=[ReasoningStep(
-                            node_id=node.id,
-                            node_text=node.text,
-                            confidence=node.confidence,
-                            step_type="premise",
-                            explanation="Contradicting evidence",
-                        )],
-                        conclusion_confidence=node.confidence,
-                        strategy=self.inference_strategy,
-                        explanation=f"Contradicts hypothesis: {node.text}",
-                    ))
+                    contradicting.append(
+                        ReasoningChain(
+                            steps=[
+                                ReasoningStep(
+                                    node_id=node.id,
+                                    node_text=node.text,
+                                    confidence=node.confidence,
+                                    step_type="premise",
+                                    explanation="Contradicting evidence",
+                                )
+                            ],
+                            conclusion_confidence=node.confidence,
+                            strategy=self.inference_strategy,
+                            explanation=f"Contradicts hypothesis: {node.text}",
+                        )
+                    )
             else:
                 for chain in chains:
                     chain.explanation = self._build_explanation(chain.steps)
                 supporting.extend(chains)
                 if not chains:
-                    supporting.append(ReasoningChain(
-                        steps=[ReasoningStep(
-                            node_id=node.id,
-                            node_text=node.text,
-                            confidence=node.confidence,
-                            step_type="premise",
-                            explanation="Supporting evidence",
-                        )],
-                        conclusion_confidence=node.confidence,
-                        strategy=self.inference_strategy,
-                        explanation=f"Supports hypothesis: {node.text}",
-                    ))
+                    supporting.append(
+                        ReasoningChain(
+                            steps=[
+                                ReasoningStep(
+                                    node_id=node.id,
+                                    node_text=node.text,
+                                    confidence=node.confidence,
+                                    step_type="premise",
+                                    explanation="Supporting evidence",
+                                )
+                            ],
+                            conclusion_confidence=node.confidence,
+                            strategy=self.inference_strategy,
+                            explanation=f"Supports hypothesis: {node.text}",
+                        )
+                    )
 
         # Compute overall confidence
         support_conf = max((c.conclusion_confidence for c in supporting), default=0.0)
         contra_conf = max((c.conclusion_confidence for c in contradicting), default=0.0)
 
         if support_conf > 0 or contra_conf > 0:
-            net_confidence = (support_conf - contra_conf * 0.5)
+            net_confidence = support_conf - contra_conf * 0.5
             net_confidence = max(0.0, min(1.0, net_confidence))
         else:
             net_confidence = 0.0
@@ -502,13 +521,11 @@ class ReasoningEngine:
         explanation_parts = []
         if supporting:
             explanation_parts.append(
-                f"Found {len(supporting)} supporting evidence chain(s) "
-                f"(max confidence: {support_conf:.2f})"
+                f"Found {len(supporting)} supporting evidence chain(s) (max confidence: {support_conf:.2f})"
             )
         if contradicting:
             explanation_parts.append(
-                f"Found {len(contradicting)} contradicting evidence chain(s) "
-                f"(max confidence: {contra_conf:.2f})"
+                f"Found {len(contradicting)} contradicting evidence chain(s) (max confidence: {contra_conf:.2f})"
             )
         if not supporting and not contradicting:
             explanation_parts.append("No relevant evidence found in the knowledge graph")
@@ -568,7 +585,7 @@ class ReasoningEngine:
         if chains:
             lines.append(f"Evidence chains ({len(chains)}):")
             for i, chain in enumerate(chains):
-                lines.append(f"  Chain {i+1} (confidence: {chain.conclusion_confidence:.2f}):")
+                lines.append(f"  Chain {i + 1} (confidence: {chain.conclusion_confidence:.2f}):")
                 for step in chain.steps:
                     marker = ">>" if step.step_type == "conclusion" else "  "
                     lines.append(f"    {marker} {step.node_text[:60]} [{step.confidence:.2f}]")
@@ -635,7 +652,9 @@ class ReasoningEngine:
 
             # Check negation mismatch
             node_lower = node.text.lower()
-            node_has_neg = any(neg in node_lower for neg in ["not", "never", "no ", "cannot", "doesn't", "don't", "isn't"])
+            node_has_neg = any(
+                neg in node_lower for neg in ["not", "never", "no ", "cannot", "doesn't", "don't", "isn't"]
+            )
             if has_negation != node_has_neg:
                 contradicting.add(node_id)
 

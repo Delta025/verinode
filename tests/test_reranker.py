@@ -3,22 +3,21 @@ Tests for the CrossEncoderReranker: re-ranking, score normalization,
 integration with VerificationEngine and Pipeline.
 """
 
-import pytest
+from unittest.mock import MagicMock
+
 import numpy as np
-from unittest.mock import MagicMock, patch, PropertyMock
+import pytest
 
-from src.core.reranker import CrossEncoderReranker, RerankResult
 from src.core.graph import KnowledgeGraph
-from src.core.node import KnowledgeNode, NodeType, Source
-from src.core.confidence import ConfidenceEngine
-from src.core.reasoning import ReasoningEngine
-from src.core.verification import VerificationEngine, Verdict
 from src.core.llm_contradiction import RelevanceResult
-
+from src.core.node import KnowledgeNode
+from src.core.reranker import CrossEncoderReranker, RerankResult
+from src.core.verification import Verdict, VerificationEngine
 
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
+
 
 def make_node(text, confidence=0.9, domain="chemistry", node_id=None):
     """Create a KnowledgeNode for testing."""
@@ -66,6 +65,7 @@ def make_mock_reranker(scores):
 # ------------------------------------------------------------------
 # Unit tests: CrossEncoderReranker
 # ------------------------------------------------------------------
+
 
 class TestCrossEncoderRerankerInit:
     def test_default_parameters(self):
@@ -295,20 +295,25 @@ class TestRerankWithDetails:
 # Integration: VerificationEngine + Reranker
 # ------------------------------------------------------------------
 
+
 class TestVerificationWithReranker:
     def test_reranker_used_in_gather_candidates(self):
         """VerificationEngine._gather_candidates uses reranker when provided."""
         graph = KnowledgeGraph()
-        graph.add_node(make_node(
-            "Gold melts at 1064 degrees Celsius",
-            confidence=0.95,
-            node_id="gold-melt",
-        ))
-        graph.add_node(make_node(
-            "Gold is a chemical element with symbol Au",
-            confidence=0.90,
-            node_id="gold-element",
-        ))
+        graph.add_node(
+            make_node(
+                "Gold melts at 1064 degrees Celsius",
+                confidence=0.95,
+                node_id="gold-melt",
+            )
+        )
+        graph.add_node(
+            make_node(
+                "Gold is a chemical element with symbol Au",
+                confidence=0.90,
+                node_id="gold-element",
+            )
+        )
 
         mock_emb = MagicMock()
         mock_emb.index_size = 2
@@ -340,9 +345,7 @@ class TestVerificationWithReranker:
 
         mock_emb = MagicMock()
         mock_emb.index_size = 5
-        mock_emb.search.return_value = [
-            {"node_id": f"n{i}", "score": 0.8 - i * 0.05} for i in range(5)
-        ]
+        mock_emb.search.return_value = [{"node_id": f"n{i}", "score": 0.8 - i * 0.05} for i in range(5)]
 
         mock_reranker = make_mock_reranker([5.0, 4.0, 3.0, 2.0, 1.0])
 
@@ -361,11 +364,13 @@ class TestVerificationWithReranker:
     def test_reranker_failure_falls_back_gracefully(self):
         """If reranker raises an exception, falls back to original ordering."""
         graph = KnowledgeGraph()
-        graph.add_node(make_node(
-            "Water boils at 100 degrees Celsius",
-            confidence=0.95,
-            node_id="node-1",
-        ))
+        graph.add_node(
+            make_node(
+                "Water boils at 100 degrees Celsius",
+                confidence=0.95,
+                node_id="node-1",
+            )
+        )
 
         mock_emb = MagicMock()
         mock_emb.index_size = 1
@@ -389,16 +394,20 @@ class TestVerificationWithReranker:
     def test_verify_with_reranker_detects_contradiction(self):
         """Full verify flow with reranker correctly detects contradictions."""
         graph = KnowledgeGraph()
-        graph.add_node(make_node(
-            "Gold melts at 1064 degrees Celsius",
-            confidence=0.95,
-            node_id="gold-melt",
-        ))
-        graph.add_node(make_node(
-            "Gold is a dense yellow metal",
-            confidence=0.90,
-            node_id="gold-desc",
-        ))
+        graph.add_node(
+            make_node(
+                "Gold melts at 1064 degrees Celsius",
+                confidence=0.95,
+                node_id="gold-melt",
+            )
+        )
+        graph.add_node(
+            make_node(
+                "Gold is a dense yellow metal",
+                confidence=0.90,
+                node_id="gold-desc",
+            )
+        )
 
         mock_emb = MagicMock()
         mock_emb.index_size = 2
@@ -441,11 +450,13 @@ class TestVerificationWithReranker:
     def test_no_reranker_works_as_before(self):
         """Without reranker, verification works identically to before."""
         graph = KnowledgeGraph()
-        graph.add_node(make_node(
-            "Water boils at 100 degrees Celsius",
-            confidence=0.95,
-            node_id="node-1",
-        ))
+        graph.add_node(
+            make_node(
+                "Water boils at 100 degrees Celsius",
+                confidence=0.95,
+                node_id="node-1",
+            )
+        )
 
         mock_emb = MagicMock()
         mock_emb.index_size = 1
@@ -467,11 +478,11 @@ class TestVerificationWithReranker:
 # Integration: Pipeline + Reranker
 # ------------------------------------------------------------------
 
+
 class TestPipelineWithReranker:
     def test_pipeline_accepts_reranker(self):
         """Pipeline constructor accepts reranker parameter."""
         from src.core.pipeline import Pipeline
-        from src.core.embeddings import EmbeddingEngine
 
         graph = KnowledgeGraph()
         mock_extractor = MagicMock()
@@ -505,6 +516,7 @@ class TestPipelineWithReranker:
 # ------------------------------------------------------------------
 # Edge cases
 # ------------------------------------------------------------------
+
 
 class TestRerankerEdgeCases:
     def test_single_candidate(self):

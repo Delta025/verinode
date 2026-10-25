@@ -14,17 +14,18 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 
 import src.api.state as state_mod
+
 from ..schemas import (
+    MemoryFactItem,
+    MemoryImportRequest,
+    MemoryImportResponse,
+    MemoryIngestRequest,
+    MemoryIngestResponse,
     MemoryQueryRequest,
     MemoryQueryResponse,
-    MemoryFactItem,
     MemoryRecallRequest,
     MemoryVerifyRequest,
     MemoryVerifyResponse,
-    MemoryIngestRequest,
-    MemoryIngestResponse,
-    MemoryImportRequest,
-    MemoryImportResponse,
 )
 
 router = APIRouter(prefix="/memory", tags=["memory"])
@@ -131,8 +132,9 @@ def memory_export(domain: str, confidence_threshold: float = Query(0.5, ge=0.0, 
     if st is None:
         raise HTTPException(status_code=503, detail="App state not initialized")
 
-    from src.core.export import export_subgraph, export_to_json
     import json
+
+    from src.core.export import export_subgraph, export_to_json
 
     export = export_subgraph(st.graph, domain, confidence_threshold=confidence_threshold)
     return JSONResponse(content=json.loads(export_to_json(export)))

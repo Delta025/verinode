@@ -5,13 +5,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-import pytest
-from core.unit_normalizer import normalize_units, normalize_number_formats
-
+from core.unit_normalizer import normalize_number_formats, normalize_units
 
 # ------------------------------------------------------------------
 # Number format normalization
 # ------------------------------------------------------------------
+
 
 class TestNormalizeNumberFormats:
     def test_strips_commas(self):
@@ -33,6 +32,7 @@ class TestNormalizeNumberFormats:
 # ------------------------------------------------------------------
 # Distance conversions (→ km)
 # ------------------------------------------------------------------
+
 
 class TestDistanceConversion:
     def test_miles_to_km(self):
@@ -71,6 +71,7 @@ class TestDistanceConversion:
 # Speed conversions (→ km/h)
 # ------------------------------------------------------------------
 
+
 class TestSpeedConversion:
     def test_mph_to_kmh(self):
         result = normalize_units("Speed: 100 mph")
@@ -98,6 +99,7 @@ class TestSpeedConversion:
 # ------------------------------------------------------------------
 # Temperature conversions (→ °C)
 # ------------------------------------------------------------------
+
 
 class TestTemperatureConversion:
     def test_fahrenheit_to_celsius(self):
@@ -129,6 +131,7 @@ class TestTemperatureConversion:
 # ------------------------------------------------------------------
 # Mass conversions (→ kg)
 # ------------------------------------------------------------------
+
 
 class TestMassConversion:
     def test_lbs_to_kg(self):
@@ -162,6 +165,7 @@ class TestMassConversion:
 # Area conversions (→ km²)
 # ------------------------------------------------------------------
 
+
 class TestAreaConversion:
     def test_sq_miles_to_km2(self):
         result = normalize_units("area of 100 sq mi")
@@ -185,6 +189,7 @@ class TestAreaConversion:
 # ------------------------------------------------------------------
 # Edge cases
 # ------------------------------------------------------------------
+
 
 class TestEdgeCases:
     def test_empty_string(self):
@@ -230,6 +235,7 @@ class TestEdgeCases:
 # ------------------------------------------------------------------
 # Real-world solar system examples (from the conflict analysis)
 # ------------------------------------------------------------------
+
 
 class TestSolarSystemExamples:
     def test_earth_sun_distance_miles(self):

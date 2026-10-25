@@ -10,8 +10,8 @@ Thread-safe: uses a threading.Lock for concurrent access.
 """
 
 import logging
-import time
 import threading
+import time
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,7 @@ class BudgetExhausted(Exception):
 @dataclass
 class RateLimiterStats:
     """Cumulative usage statistics for logging and resume."""
+
     total_requests: int = 0
     total_retries: int = 0
     total_429_errors: int = 0
@@ -75,11 +76,7 @@ class GeminiRateLimiter:
         self.max_retries = max_retries
         self.daily_budget_reserve = daily_budget_reserve
         self.max_cost_usd = max_cost_usd
-        self.cost_per_request = (
-            cost_per_request
-            if cost_per_request is not None
-            else self.DEFAULT_COST_PER_REQUEST
-        )
+        self.cost_per_request = cost_per_request if cost_per_request is not None else self.DEFAULT_COST_PER_REQUEST
 
         self._lock = threading.Lock()
         self._request_times: list[float] = []
@@ -115,8 +112,7 @@ class GeminiRateLimiter:
                     self._stats.budget_exhausted = True
                     self._stats.estimated_cost_usd = estimated
                     logger.warning(
-                        "Cost budget reached (~$%.4f / $%.2f limit, "
-                        "%d requests). Stopping.",
+                        "Cost budget reached (~$%.4f / $%.2f limit, %d requests). Stopping.",
                         estimated,
                         self.max_cost_usd,
                         self._daily_count,
@@ -129,8 +125,7 @@ class GeminiRateLimiter:
                 if self._daily_count >= effective_limit:
                     self._stats.daily_limit_reached = True
                     logger.warning(
-                        "Daily limit approaching (%d/%d used, reserve=%d). "
-                        "Stopping.",
+                        "Daily limit approaching (%d/%d used, reserve=%d). Stopping.",
                         self._daily_count,
                         self.rpd,
                         self.daily_budget_reserve,
@@ -140,9 +135,7 @@ class GeminiRateLimiter:
             # Enforce per-minute rate
             now = time.time()
             window_start = now - 60.0
-            self._request_times = [
-                t for t in self._request_times if t > window_start
-            ]
+            self._request_times = [t for t in self._request_times if t > window_start]
 
             if len(self._request_times) >= self.rpm:
                 oldest = self._request_times[0]
@@ -155,17 +148,13 @@ class GeminiRateLimiter:
                 finally:
                     self._lock.acquire()
                 now = time.time()
-                self._request_times = [
-                    t for t in self._request_times if t > now - 60.0
-                ]
+                self._request_times = [t for t in self._request_times if t > now - 60.0]
 
             self._request_times.append(now)
             self._daily_count += 1
             self._stats.total_requests += 1
             self._stats.daily_requests = self._daily_count
-            self._stats.estimated_cost_usd = (
-                self._daily_count * self.cost_per_request
-            )
+            self._stats.estimated_cost_usd = self._daily_count * self.cost_per_request
             return True
 
     def handle_429(self, attempt: int) -> bool:
@@ -185,7 +174,7 @@ class GeminiRateLimiter:
             logger.error("Max retries (%d) exceeded on 429", self.max_retries)
             return False
 
-        backoff = min(2 ** attempt * 6.0, 120.0)  # 6s, 12s, 24s, 48s, 96s
+        backoff = min(2**attempt * 6.0, 120.0)  # 6s, 12s, 24s, 48s, 96s
         logger.warning(
             "429 received, backing off %.1fs (attempt %d/%d)",
             backoff,

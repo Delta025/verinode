@@ -5,16 +5,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from core.rate_limiter import (
-    DailyLimitReached,
     BudgetExhausted,
+    DailyLimitReached,
     GeminiRateLimiter,
     RateLimiterStats,
 )
-
 
 # ------------------------------------------------------------------
 # Construction
@@ -121,9 +121,7 @@ class TestWaitForSlot:
     def test_cost_budget_exhausted_returns_false(self, mock_time):
         """When estimated cost >= max_cost_usd, returns False."""
         mock_time.time.return_value = 1000.0
-        limiter = GeminiRateLimiter(
-            rpm=60, rpd=0, max_cost_usd=0.01, cost_per_request=0.001
-        )
+        limiter = GeminiRateLimiter(rpm=60, rpd=0, max_cost_usd=0.01, cost_per_request=0.001)
         # 10 requests * 0.001 = 0.01 >= 0.01 limit
         limiter._daily_count = 10
 
@@ -236,9 +234,7 @@ class TestHandle429:
         for attempt, expected in enumerate(expected_backoffs):
             limiter.handle_429(attempt=attempt)
             actual = mock_time.sleep.call_args[0][0]
-            assert actual == pytest.approx(expected), (
-                f"Attempt {attempt}: expected {expected}, got {actual}"
-            )
+            assert actual == pytest.approx(expected), f"Attempt {attempt}: expected {expected}, got {actual}"
 
     @patch("core.rate_limiter.time")
     def test_backoff_capped_at_120(self, mock_time):
@@ -309,9 +305,7 @@ class TestStatsTracking:
     def test_estimated_cost_tracks(self, mock_time):
         """Estimated cost updates after each slot acquisition."""
         mock_time.time.return_value = 1000.0
-        limiter = GeminiRateLimiter(
-            rpm=60, rpd=0, max_cost_usd=0.0, cost_per_request=0.01
-        )
+        limiter = GeminiRateLimiter(rpm=60, rpd=0, max_cost_usd=0.0, cost_per_request=0.01)
 
         limiter.wait_for_slot()
         assert limiter.stats.estimated_cost_usd == pytest.approx(0.01)

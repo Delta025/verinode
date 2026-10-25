@@ -1,15 +1,14 @@
 """Tests for the EntityIndex inverted index."""
 
-import pytest
 from unittest.mock import MagicMock
 
-from src.core.entity_index import EntityIndex, extract_content_words, STOP_WORDS
+from src.core.entity_index import EntityIndex, extract_content_words
 from src.core.node import KnowledgeNode
-
 
 # ------------------------------------------------------------------
 # extract_content_words
 # ------------------------------------------------------------------
+
 
 class TestExtractContentWords:
     def test_basic_extraction(self):
@@ -54,6 +53,7 @@ class TestExtractContentWords:
 # ------------------------------------------------------------------
 # EntityIndex
 # ------------------------------------------------------------------
+
 
 def _make_node(node_id: str, text: str) -> KnowledgeNode:
     return KnowledgeNode(node_id=node_id, text=text, domain="test")
@@ -237,6 +237,7 @@ class TestEntityIndex:
 # BM25 search
 # ------------------------------------------------------------------
 
+
 class TestBM25Search:
     def _build_index(self):
         """Build an index with nodes where 'planet' is common and 'neptune' is rare."""
@@ -327,6 +328,7 @@ class TestBM25Search:
         idx.add_node(n2)
 
         from src.core.entity_index import extract_content_words
+
         words1 = extract_content_words(n1.text)
         words2 = extract_content_words(n2.text)
         assert idx._doc_lengths["n1"] == len(words1)

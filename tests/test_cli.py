@@ -10,7 +10,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from click.testing import CliRunner
@@ -18,23 +18,23 @@ from click.testing import CliRunner
 # Ensure src/ is on path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.cli.main import cli
-from src.cli.state import EngineState
-from src.cli.formatting import (
-    confidence_color,
-    confidence_text,
-    status_style,
-    short_id,
-    resolve_node_id,
-)
-from src.core.node import KnowledgeNode, NodeType, NodeStatus, Source, Derivation
-from src.core.graph import KnowledgeGraph
 from datetime import datetime, timedelta
 
+from src.cli.formatting import (
+    confidence_color,
+    resolve_node_id,
+    short_id,
+    status_style,
+)
+from src.cli.main import cli
+from src.cli.state import EngineState
+from src.core.graph import KnowledgeGraph
+from src.core.node import Derivation, KnowledgeNode, NodeType, Source
 
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
+
 
 def _build_graph() -> KnowledgeGraph:
     """Create a small test graph with 4 nodes."""
@@ -135,6 +135,7 @@ def _build_stale_graph() -> KnowledgeGraph:
 # Formatting unit tests
 # ------------------------------------------------------------------
 
+
 class TestFormattingHelpers:
     """Test low-level formatting utilities."""
 
@@ -168,6 +169,7 @@ class TestFormattingHelpers:
 
     def test_resolve_node_id_not_found(self):
         import click
+
         graph = _build_graph()
         with pytest.raises(click.BadParameter, match="No node found"):
             resolve_node_id(graph, "zzzzzzz")
@@ -176,6 +178,7 @@ class TestFormattingHelpers:
 # ------------------------------------------------------------------
 # CLI: stats
 # ------------------------------------------------------------------
+
 
 class TestStatsCommand:
     """Test the 'stats' command."""
@@ -202,6 +205,7 @@ class TestStatsCommand:
 # ------------------------------------------------------------------
 # CLI: list
 # ------------------------------------------------------------------
+
 
 class TestListCommand:
     """Test the 'list' command."""
@@ -265,6 +269,7 @@ class TestListCommand:
 # CLI: inspect
 # ------------------------------------------------------------------
 
+
 class TestInspectCommand:
     """Test the 'inspect' command."""
 
@@ -310,6 +315,7 @@ class TestInspectCommand:
 # CLI: explain
 # ------------------------------------------------------------------
 
+
 class TestExplainCommand:
     """Test the 'explain' command."""
 
@@ -330,6 +336,7 @@ class TestExplainCommand:
 # CLI: trace
 # ------------------------------------------------------------------
 
+
 class TestTraceCommand:
     """Test the 'trace' command."""
 
@@ -341,9 +348,7 @@ class TestTraceCommand:
         inference_node = [n for n in nodes_list if n.node_type == NodeType.INFERENCE][0]
         try:
             runner = CliRunner()
-            result = runner.invoke(
-                cli, ["--graph", path, "trace", inference_node.id[:8]]
-            )
+            result = runner.invoke(cli, ["--graph", path, "trace", inference_node.id[:8]])
             assert result.exit_code == 0
             assert "Confidence Trace" in result.output
         finally:
@@ -353,6 +358,7 @@ class TestTraceCommand:
 # ------------------------------------------------------------------
 # CLI: anomalies
 # ------------------------------------------------------------------
+
 
 class TestAnomaliesCommand:
     """Test the 'anomalies' command."""
@@ -378,6 +384,7 @@ class TestAnomaliesCommand:
 # ------------------------------------------------------------------
 # CLI: save / load
 # ------------------------------------------------------------------
+
 
 class TestSaveLoadCommands:
     """Test save and load commands."""
@@ -413,6 +420,7 @@ class TestSaveLoadCommands:
 # ------------------------------------------------------------------
 # CLI: ingest (mocked)
 # ------------------------------------------------------------------
+
 
 class TestIngestCommand:
     """Test the 'ingest' command with mocked pipeline."""
@@ -451,12 +459,17 @@ class TestIngestCommand:
 
             # Patch the pipeline property on the EngineState class
             with patch.object(EngineState, "pipeline", new=property(lambda self: mock_pipe)):
-                result = runner.invoke(cli, [
-                    "--graph", graph_path,
-                    "ingest",
-                    "Water is H2O",
-                    "--domain", "chemistry",
-                ])
+                result = runner.invoke(
+                    cli,
+                    [
+                        "--graph",
+                        graph_path,
+                        "ingest",
+                        "Water is H2O",
+                        "--domain",
+                        "chemistry",
+                    ],
+                )
                 assert result.exit_code == 0
                 assert "ADDED" in result.output
                 assert "Water is H2O" in result.output
@@ -481,11 +494,18 @@ class TestIngestCommand:
             mock_pipe.ingest.return_value = mock_result
 
             with patch.object(EngineState, "pipeline", new=property(lambda self: mock_pipe)):
-                result = runner.invoke(cli, [
-                    "--graph", graph_path,
-                    "ingest", text_path, "--file",
-                    "--domain", "chemistry",
-                ])
+                result = runner.invoke(
+                    cli,
+                    [
+                        "--graph",
+                        graph_path,
+                        "ingest",
+                        text_path,
+                        "--file",
+                        "--domain",
+                        "chemistry",
+                    ],
+                )
                 assert result.exit_code == 0
                 assert "ADDED" in result.output
         finally:
@@ -496,6 +516,7 @@ class TestIngestCommand:
 # ------------------------------------------------------------------
 # CLI: query (mocked)
 # ------------------------------------------------------------------
+
 
 class TestQueryCommand:
     """Test the 'query' command with a pre-built graph (no Ollama)."""
@@ -523,6 +544,7 @@ class TestQueryCommand:
 # CLI: hypothesis (mocked)
 # ------------------------------------------------------------------
 
+
 class TestHypothesisCommand:
     """Test the 'hypothesis' command."""
 
@@ -537,9 +559,7 @@ class TestHypothesisCommand:
         path = _save_temp_graph(graph)
         try:
             runner = CliRunner()
-            result = runner.invoke(
-                cli, ["--graph", path, "hypothesis", "Water boils at 100 degrees"]
-            )
+            result = runner.invoke(cli, ["--graph", path, "hypothesis", "Water boils at 100 degrees"])
             assert result.exit_code == 0
             assert "Hypothesis" in result.output
         finally:
@@ -549,6 +569,7 @@ class TestHypothesisCommand:
 # ------------------------------------------------------------------
 # CLI: SQLite support
 # ------------------------------------------------------------------
+
 
 class TestSQLiteCLI:
     """Test CLI commands with SQLite graph backend."""
@@ -561,6 +582,7 @@ class TestSQLiteCLI:
         Returns list of node IDs.
         """
         from src.core.storage import SqliteGraph
+
         mem_graph = _build_graph()
         sg = SqliteGraph.from_graph(mem_graph, db_path)
         node_ids = list(sg.nodes.keys())
@@ -578,6 +600,7 @@ class TestSQLiteCLI:
         # CliRunner stores state in ctx.obj; we can't easily access it
         # but the SqliteGraph __del__ should close on GC.
         import gc
+
         gc.collect()
         return result
 
@@ -617,6 +640,7 @@ class TestSQLiteCLI:
 
             # Verify the SQLite file is valid
             from src.core.storage import SqliteGraph
+
             sg = SqliteGraph(db_path)
             assert len(sg) == 4
             sg.close()
@@ -662,6 +686,7 @@ class TestSQLiteCLI:
 # ------------------------------------------------------------------
 # CLI: maintain
 # ------------------------------------------------------------------
+
 
 class TestMaintainCommand:
     """Test the 'maintain' command."""
@@ -712,6 +737,7 @@ class TestMaintainCommand:
 # CLI: doubt
 # ------------------------------------------------------------------
 
+
 class TestDoubtCommand:
     """Test the 'doubt' command."""
 
@@ -741,6 +767,7 @@ class TestDoubtCommand:
 # CLI: strengthen
 # ------------------------------------------------------------------
 
+
 class TestStrengthenCommand:
     """Test the 'strengthen' command."""
 
@@ -754,7 +781,9 @@ class TestStrengthenCommand:
             result = runner.invoke(cli, ["--graph", path, "strengthen", "popular-"])
             assert result.exit_code == 0
             # Should show access info or boost info
-            assert "access" in result.output.lower() or "boost" in result.output.lower() or "Strengthened" in result.output
+            assert (
+                "access" in result.output.lower() or "boost" in result.output.lower() or "Strengthened" in result.output
+            )
         finally:
             os.unlink(path)
 
@@ -766,7 +795,9 @@ class TestStrengthenCommand:
             runner = CliRunner()
             result = runner.invoke(cli, ["--graph", path, "strengthen", "--validate", "popular-"])
             assert result.exit_code == 0
-            assert "access" in result.output.lower() or "boost" in result.output.lower() or "Strengthened" in result.output
+            assert (
+                "access" in result.output.lower() or "boost" in result.output.lower() or "Strengthened" in result.output
+            )
         finally:
             os.unlink(path)
 

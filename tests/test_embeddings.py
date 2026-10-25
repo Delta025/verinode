@@ -18,15 +18,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-import pytest
 import numpy as np
+import pytest
 
-from core import KnowledgeGraph, KnowledgeNode, NodeType, EmbeddingEngine
-
+from core import EmbeddingEngine, KnowledgeGraph, KnowledgeNode, NodeType
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="module")
 def engine():
@@ -59,6 +59,7 @@ def _make_graph():
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 def test_embed_single_text(engine):
     """Embedding a single string returns a float32 vector of the right shape."""
@@ -178,9 +179,9 @@ def test_cosine_similarity(engine):
     graph, nodes = _make_graph()
     engine.index_graph(graph)
 
-    water_comp = nodes[0]   # chemistry: water composition
-    water_bp = nodes[1]     # chemistry: water boiling point
-    mitosis = nodes[3]      # biology: cell division
+    water_comp = nodes[0]  # chemistry: water composition
+    water_bp = nodes[1]  # chemistry: water boiling point
+    mitosis = nodes[3]  # biology: cell division
 
     sim_same_topic = engine.cosine_similarity(water_comp.id, water_bp.id)
     sim_diff_topic = engine.cosine_similarity(water_comp.id, mitosis.id)
@@ -218,6 +219,7 @@ def test_find_similar_missing_node(engine):
 # ---------------------------------------------------------------------------
 # Public accessor tests (get_embedding, has_embedding)
 # ---------------------------------------------------------------------------
+
 
 def test_get_embedding_returns_copy(engine):
     """get_embedding returns a copy of the stored vector."""
