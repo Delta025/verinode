@@ -1,0 +1,40 @@
+{
+    "graph_output": "data/solar_system.json",
+    "domain": "astronomy",
+    "extractor_backend": "gemini",
+    "checker_backend": "gemini",
+    "gemini_tier": "paid",
+    "rpm": 1000,
+    "rpd": 0,
+    "max_cost_usd": 5.00,
+    "sources": [
+        {
+            "url": "https://en.wikipedia.org/wiki/Solar_System",
+            "quality_score": 0.95,
+            "source_type": "encyclopedia",
+            "title": "Wikipedia: Solar System",
+            "domain": "astronomy"
+        },
+        {
+            "url": "https://en.wikipedia.org/wiki/Sun",
+            "quality_score": 0.90,
+            "source_type": "encyclopedia",
+            "title": "Wikipedia: Sun",
+            "domain": "astronomy"
+        },
+        {
+            "url": "https://solarsystem.nasa.gov/solar-system/our-solar-system/overview/",
+            "quality_score": 0.70,
+            "source_type": "educational",
+            "title": "NASA: Our Solar System",
+            "domain": "astronomy"
+        },
+        {
+            "url": "https://www.space.com/56-our-solar-system-facts-formation-and-discovery.html",
+            "quality_score": 0.60,
+            "source_type": "news",
+            "title": "Space.com: Solar System Facts",
+            "domain": "astronomy"
+        }
+    ]
+}

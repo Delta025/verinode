@@ -1,0 +1,47 @@
+services:
+  engram:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+    # ── GPU support (NVIDIA) ──────────────────────────────────
+    # Requires nvidia-container-toolkit on the host.
+    # Comment out the 'deploy' block below for CPU-only mode.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    # ── CPU-only alternative ──────────────────────────────────
+    # To run without a GPU, remove the 'deploy' block above.
+    # Ollama will use CPU inference (significantly slower).
+
+volumes:
+  ollama_models:

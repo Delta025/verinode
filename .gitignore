@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE / tools
+.vscode/
+.idea/
+.claude/
+*.swp
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Generated graphs and results (only the bundled demo graph is tracked)
+*.json
+*.db
+!data/demo_graph.json
+!configs/*.json
+!src/web/package.json
+!src/web/package-lock.json
+!src/web/tsconfig.json
+*.pkl
+*.h5
+data/calibration/results/
+
+# Frontend
+src/web/node_modules/
+src/web/dist/
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

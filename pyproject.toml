@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=68.0", "setuptools-scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "engram-ai"
+version = "0.1.0"
+description = "Knowledge graph with confidence tracking, provenance, and truth verification"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Delta025" },
+]
+keywords = ["knowledge-graph", "ai", "verification", "confidence", "provenance"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "numpy>=1.21.0",
+    "sentence-transformers>=2.2.0",
+    "faiss-cpu>=1.7.0",
+    "ollama>=0.4.0",
+    "click>=8.0.0",
+    "rich>=13.0.0",
+    "fastapi>=0.100.0",
+    "pydantic>=2.0.0",
+    "uvicorn[standard]>=0.23.0",
+    "trafilatura>=1.6.0",
+    "requests>=2.28.0",
+]
+
+[project.optional-dependencies]
+gemini = ["google-genai>=1.0.0"]
+dev = [
+    "pytest>=7.0.0",
+    "ruff>=0.4.0",
+    "build>=1.0.0",
+]
+benchmark = ["optuna>=3.0.0"]
+
+[project.scripts]
+engram = "src.cli.main:cli"
+engram-server = "src.api.server:main"
+
+[project.urls]
+Repository = "https://github.com/Delta025/Knowledge-Graph-AI"
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: requires a running Ollama server",
+    "calibration: requires models and datasets",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]

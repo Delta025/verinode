@@ -1,0 +1,50 @@
+# Version control
+.git/
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+venv/
+env/
+.eggs/
+
+# Data (graphs are mounted as volumes, not baked into image)
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment (secrets must not be baked in)
+.env
+
+# Frontend build artifacts (rebuilt in Docker)
+src/web/node_modules/
+src/web/dist/
+
+# Tests, benchmarks, examples (not needed in production image)
+tests/
+benchmarks/
+examples/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/
+
+# Misc
+*.log
+*.pkl
+*.h5
