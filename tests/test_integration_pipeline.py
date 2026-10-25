@@ -28,23 +28,24 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from core.pipeline import Pipeline, IngestionResult, BatchIngestionResult, IngestionVerdict
-from core.graph import KnowledgeGraph
-from core.node import KnowledgeNode, NodeType, NodeStatus, Source
-from core.fact_extraction import FactExtractionEngine
-from core.embeddings import EmbeddingEngine
-from core.dependency_detection import DependencyDetector
 from core.confidence import ConfidenceEngine
-
+from core.dependency_detection import DependencyDetector
+from core.embeddings import EmbeddingEngine
+from core.fact_extraction import FactExtractionEngine
+from core.graph import KnowledgeGraph
+from core.node import KnowledgeNode, NodeType, Source
+from core.pipeline import BatchIngestionResult, IngestionResult, Pipeline
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _ollama_available() -> bool:
     """Check if Ollama server is reachable."""
     try:
         import ollama
+
         client = ollama.Client()
         client.list()
         return True
@@ -55,6 +56,7 @@ def _ollama_available() -> bool:
 def _get_model_name() -> str:
     """Get the name of an available model."""
     import ollama
+
     client = ollama.Client()
     models = client.list()
     if not models.models:
@@ -65,6 +67,7 @@ def _get_model_name() -> str:
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def pipeline():
@@ -123,6 +126,7 @@ def strict_pipeline():
 # Integration Tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.integration
 class TestPipelineBasicIngestion:
     """Test basic pipeline ingestion with real Ollama extraction."""
@@ -130,8 +134,7 @@ class TestPipelineBasicIngestion:
     def test_ingest_simple_text(self, pipeline):
         """Ingest a simple text passage and verify nodes are added."""
         result = pipeline.ingest(
-            "Water is composed of hydrogen and oxygen atoms. "
-            "It boils at 100 degrees Celsius at sea level.",
+            "Water is composed of hydrogen and oxygen atoms. It boils at 100 degrees Celsius at sea level.",
             domain="chemistry",
         )
 
@@ -219,8 +222,7 @@ class TestPipelineSourceQuality:
             if verdict.action == "added" and verdict.node_id:
                 node = pipeline.graph.get_node(verdict.node_id)
                 assert node.confidence <= 0.2 + 0.01, (
-                    f"Node confidence {node.confidence} should be capped "
-                    f"at source quality 0.2"
+                    f"Node confidence {node.confidence} should be capped at source quality 0.2"
                 )
 
     def test_high_quality_source_no_cap(self, pipeline):
@@ -242,9 +244,7 @@ class TestPipelineSourceQuality:
             if verdict.action == "added" and verdict.node_id:
                 node = pipeline.graph.get_node(verdict.node_id)
                 # The LLM should assign decent confidence to a clear fact
-                assert node.confidence > 0.3, (
-                    f"Expected uncapped confidence > 0.3, got {node.confidence}"
-                )
+                assert node.confidence > 0.3, f"Expected uncapped confidence > 0.3, got {node.confidence}"
 
 
 @pytest.mark.integration
@@ -264,7 +264,7 @@ class TestPipelineDeduplication:
         assert len(first_verdicts) >= 1, "First ingestion should add at least one node"
 
         first_node_id = first_verdicts[0].node_id
-        first_conf = pipeline.graph.get_node(first_node_id).confidence
+        pipeline.graph.get_node(first_node_id).confidence
 
         # Ingest the same fact from a different source
         result2 = pipeline.ingest(
@@ -280,8 +280,7 @@ class TestPipelineDeduplication:
             # Confidence should have been boosted
             dup = dup_verdicts[0]
             assert dup.confidence_after >= dup.confidence_before, (
-                f"Confidence should increase: before={dup.confidence_before}, "
-                f"after={dup.confidence_after}"
+                f"Confidence should increase: before={dup.confidence_before}, after={dup.confidence_after}"
             )
         else:
             # If the model phrased the extraction differently, it might not
@@ -310,8 +309,7 @@ class TestPipelineBatchIngestion:
         assert isinstance(batch_result, BatchIngestionResult)
         assert len(batch_result.results) == 3
         assert batch_result.total_added >= 3, (
-            f"Expected at least 3 nodes from 3 distinct texts, "
-            f"got {batch_result.total_added}"
+            f"Expected at least 3 nodes from 3 distinct texts, got {batch_result.total_added}"
         )
 
     def test_batch_cross_passage_dedup(self, pipeline):
@@ -381,6 +379,7 @@ class TestPipelineBuildIndex:
         """Building an index on a pre-populated graph enables deduplication."""
         # Manually add a node to the graph
         from core.node import Derivation
+
         node = KnowledgeNode(
             text="Copper has the chemical symbol Cu.",
             node_type=NodeType.FACT,
@@ -441,9 +440,7 @@ class TestPipelineEdgeCases:
             domain="earth_science",
         )
 
-        assert result.nodes_added >= 3, (
-            f"Long text should yield multiple facts, got {result.nodes_added}"
-        )
+        assert result.nodes_added >= 3, f"Long text should yield multiple facts, got {result.nodes_added}"
 
     def test_multiple_domains(self, pipeline):
         """Sequential ingestion across domains builds a multi-domain graph."""
@@ -468,6 +465,4 @@ class TestPipelineEdgeCases:
             if node.domain:
                 domains.add(node.domain)
 
-        assert len(domains) >= 2, (
-            f"Expected nodes from at least 2 domains, got domains: {domains}"
-        )
+        assert len(domains) >= 2, f"Expected nodes from at least 2 domains, got domains: {domains}"

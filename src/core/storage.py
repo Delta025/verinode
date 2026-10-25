@@ -19,7 +19,6 @@ Schema version: 1
 import json
 import sqlite3
 from datetime import datetime
-from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -37,6 +36,7 @@ from .node import (
 # Helpers
 # ------------------------------------------------------------------
 
+
 def _safe_json_loads(s):
     """Parse JSON string, returning empty dict on failure."""
     if not s:
@@ -45,6 +45,7 @@ def _safe_json_loads(s):
         return json.loads(s)
     except (json.JSONDecodeError, TypeError):
         return {}
+
 
 # ------------------------------------------------------------------
 # Schema
@@ -138,6 +139,7 @@ CREATE INDEX IF NOT EXISTS idx_changelog_type ON changelog(change_type);
 # SqliteGraph
 # ------------------------------------------------------------------
 
+
 class SqliteGraph(KnowledgeGraph):
     """
     KnowledgeGraph with automatic SQLite persistence.
@@ -199,9 +201,7 @@ class SqliteGraph(KnowledgeGraph):
         if current < 2:
             # Add relation_type column to edges table
             try:
-                cur.execute(
-                    "ALTER TABLE edges ADD COLUMN relation_type TEXT NOT NULL DEFAULT 'depends_on'"
-                )
+                cur.execute("ALTER TABLE edges ADD COLUMN relation_type TEXT NOT NULL DEFAULT 'depends_on'")
             except sqlite3.OperationalError:
                 pass  # Column already exists (idempotent)
             cur.execute("UPDATE schema_version SET version = 2")
@@ -236,9 +236,7 @@ class SqliteGraph(KnowledgeGraph):
         predecessors_by_node: Dict[str, list] = {}
         edge_labels_by_node: Dict[str, Dict[str, str]] = {}
         try:
-            edge_rows = cur.execute(
-                "SELECT successor_id, predecessor_id, relation_type FROM edges"
-            ).fetchall()
+            edge_rows = cur.execute("SELECT successor_id, predecessor_id, relation_type FROM edges").fetchall()
         except sqlite3.OperationalError:
             # Pre-migration database without relation_type column
             edge_rows = [
@@ -261,9 +259,21 @@ class SqliteGraph(KnowledgeGraph):
         # 2. Reconstruct KnowledgeNode objects and add to graph
         for row in rows:
             (
-                node_id, text, node_type, confidence, conf_lower, conf_upper,
-                domain, status, deriv_method, deriv_depth, deriv_type,
-                deriv_notes, created_at, last_validated, access_count,
+                node_id,
+                text,
+                node_type,
+                confidence,
+                conf_lower,
+                conf_upper,
+                domain,
+                status,
+                deriv_method,
+                deriv_depth,
+                deriv_type,
+                deriv_notes,
+                created_at,
+                last_validated,
+                access_count,
                 metadata_json,
             ) = row
 
@@ -368,9 +378,7 @@ class SqliteGraph(KnowledgeGraph):
             # Also persist updated status for both nodes
             self._update_node_fields(node_id1)
             self._update_node_fields(node_id2)
-            self._log_change(
-                "add_contradiction", node_id1, {"other": node_id2}
-            )
+            self._log_change("add_contradiction", node_id1, {"other": node_id2})
 
     # ------------------------------------------------------------------
     # Internal persistence helpers
@@ -441,9 +449,7 @@ class SqliteGraph(KnowledgeGraph):
         # (If it doesn't exist yet, the edge will be created when the
         # successor is added and lists us as its predecessor.)
         for succ_id in node.successor_nodes:
-            exists = cur.execute(
-                "SELECT 1 FROM nodes WHERE id = ?", (succ_id,)
-            ).fetchone()
+            exists = cur.execute("SELECT 1 FROM nodes WHERE id = ?", (succ_id,)).fetchone()
             if exists:
                 succ_node = self.nodes.get(succ_id)
                 rel_type = succ_node.edge_labels.get(node.id, "depends_on") if succ_node else "depends_on"
@@ -674,6 +680,7 @@ class SqliteGraph(KnowledgeGraph):
 # ------------------------------------------------------------------
 # Conversion functions
 # ------------------------------------------------------------------
+
 
 def json_to_sqlite(json_path: str, db_path: str) -> SqliteGraph:
     """

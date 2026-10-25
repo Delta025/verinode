@@ -17,19 +17,19 @@ Provides two core capabilities:
 Both operations are strictly read-only from the caller's perspective.
 """
 
+import logging
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Optional, Set, Dict, Any, Tuple
-import logging
+from typing import Any, Dict, List, Optional, Tuple
 
-from .node import KnowledgeNode
-from .graph import KnowledgeGraph
 from .confidence import ConfidenceEngine
-from .reasoning import ReasoningEngine, ReasoningChain
 from .dependency_detection import DependencyDetector
 from .entity_index import EntityIndex, extract_content_words
+from .graph import KnowledgeGraph
+from .node import KnowledgeNode
 from .pipeline import reciprocal_rank_fusion
+from .reasoning import ReasoningChain, ReasoningEngine
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +38,10 @@ logger = logging.getLogger(__name__)
 # Data structures
 # ------------------------------------------------------------------
 
+
 class Verdict(Enum):
     """Outcome of verifying a claim against the knowledge graph."""
+
     SUPPORTED = "supported"
     CONTRADICTED = "contradicted"
     UNCERTAIN = "uncertain"
@@ -49,6 +51,7 @@ class Verdict(Enum):
 @dataclass
 class SourceEvidence:
     """A single piece of evidence (supporting or contradicting)."""
+
     node_id: str
     node_text: str
     confidence: float
@@ -60,6 +63,7 @@ class SourceEvidence:
 @dataclass
 class VerificationResult:
     """Complete result of verifying a claim against the graph."""
+
     claim: str
     verdict: Verdict
     confidence: float
@@ -73,6 +77,7 @@ class VerificationResult:
 @dataclass
 class RetractedNodeImpact:
     """Impact of retraction on a single downstream node."""
+
     node_id: str
     node_text: str
     original_confidence: float
@@ -84,6 +89,7 @@ class RetractedNodeImpact:
 @dataclass
 class RetractionSimulation:
     """Complete result of a retraction what-if analysis."""
+
     retracted_node_id: str
     retracted_node_text: str
     original_confidence: float
@@ -100,6 +106,7 @@ class RetractionSimulation:
 # ------------------------------------------------------------------
 # Engine
 # ------------------------------------------------------------------
+
 
 class VerificationEngine:
     """
@@ -178,7 +185,7 @@ class VerificationEngine:
     # Source quality weighting
     # ------------------------------------------------------------------
 
-    def _get_source_quality(self, node: 'KnowledgeNode') -> float:
+    def _get_source_quality(self, node: "KnowledgeNode") -> float:
         """
         Get the best source quality for a node.
 
@@ -189,9 +196,7 @@ class VerificationEngine:
             return 0.5
         return max(s.quality_score for s in node.sources)
 
-    def _weighted_confidence(
-        self, node: 'KnowledgeNode', sim_score: float
-    ) -> float:
+    def _weighted_confidence(self, node: "KnowledgeNode", sim_score: float) -> float:
         """
         Compute evidence confidence weighted by similarity and source quality.
 
@@ -273,20 +278,14 @@ class VerificationEngine:
 
         # Step 4: Build backward chains for provenance
         for evidence in supporting + contradicting:
-            evidence.chains = self.reasoning_engine.backward_chain(
-                self.graph, evidence.node_id, max_depth=3
-            )
+            evidence.chains = self.reasoning_engine.backward_chain(self.graph, evidence.node_id, max_depth=3)
 
         # Step 5: Compute verdict
-        result = self._compute_verdict(
-            claim, supporting, contradicting, num_checked
-        )
+        result = self._compute_verdict(claim, supporting, contradicting, num_checked)
 
         return result
 
-    def _gather_candidates(
-        self, claim: str, k: int
-    ) -> List[Dict[str, Any]]:
+    def _gather_candidates(self, claim: str, k: int) -> List[Dict[str, Any]]:
         """
         Gather candidate nodes via hybrid retrieval.
 
@@ -303,9 +302,7 @@ class VerificationEngine:
             embed_results = []
             if self.embedding_engine and self.embedding_engine.index_size > 0:
                 retrieval_k = k * 3 if self.reranker else k
-                raw = self.embedding_engine.search(
-                    claim, k=retrieval_k, threshold=self.min_similarity
-                )
+                raw = self.embedding_engine.search(claim, k=retrieval_k, threshold=self.min_similarity)
                 embed_results = [(c["node_id"], c.get("score", 0.0)) for c in raw]
 
             bm25_results = self.entity_index.bm25_search(claim, top_k=k * 2)
@@ -321,22 +318,24 @@ class VerificationEngine:
             candidates = []
             if self.embedding_engine and self.embedding_engine.index_size > 0:
                 retrieval_k = k * 3 if self.reranker else k
-                results = self.embedding_engine.search(
-                    claim, k=retrieval_k, threshold=self.min_similarity
-                )
+                results = self.embedding_engine.search(claim, k=retrieval_k, threshold=self.min_similarity)
                 candidates.extend(results)
 
             seen_ids = {c["node_id"] for c in candidates}
             query_words = extract_content_words(claim)
             entity_matches = self.entity_index.find_matches(
-                claim, min_overlap=2, exclude_ids=seen_ids,
+                claim,
+                min_overlap=2,
+                exclude_ids=seen_ids,
             )
             for node_id, overlap_count in entity_matches:
-                candidates.append({
-                    "node_id": node_id,
-                    "score": overlap_count / max(len(query_words), 1),
-                    "source": "entity_overlap",
-                })
+                candidates.append(
+                    {
+                        "node_id": node_id,
+                        "score": overlap_count / max(len(query_words), 1),
+                        "source": "entity_overlap",
+                    }
+                )
 
         # Cross-encoder re-ranking (when available)
         if self.reranker and candidates:
@@ -349,17 +348,18 @@ class VerificationEngine:
                 )
                 logger.debug(
                     "Re-ranked %d candidates for claim: %s",
-                    len(candidates), claim[:60],
+                    len(candidates),
+                    claim[:60],
                 )
                 return candidates
             except Exception as e:
                 logger.warning(
-                    "Cross-encoder reranking failed, falling back to "
-                    "original order: %s", e,
+                    "Cross-encoder reranking failed, falling back to original order: %s",
+                    e,
                 )
 
         # Cap candidates (no reranker or reranker failed)
-        return candidates[:self.max_candidates]
+        return candidates[: self.max_candidates]
 
     # Similarity threshold below which candidates are considered
     # "irrelevant" and excluded from the verdict (heuristic/legacy path).
@@ -405,9 +405,7 @@ class VerificationEngine:
         if not pairs:
             return [], []
 
-        results = self.contradiction_checker.check_relevance_batch(
-            pairs, max_workers=4
-        )
+        results = self.contradiction_checker.check_relevance_batch(pairs, max_workers=4)
 
         contradicting: List[SourceEvidence] = []
         supporting: List[SourceEvidence] = []
@@ -417,25 +415,31 @@ class VerificationEngine:
             weighted_conf = self._weighted_confidence(node, sim_score)
 
             if result.relationship == "contradicts" and result.confidence >= self.llm_contradiction_confidence:
-                contradicting.append(SourceEvidence(
-                    node_id=node.id,
-                    node_text=node.text,
-                    confidence=weighted_conf,
-                    relationship="contradicts",
-                    explanation=f"LLM: {result.explanation}",
-                ))
+                contradicting.append(
+                    SourceEvidence(
+                        node_id=node.id,
+                        node_text=node.text,
+                        confidence=weighted_conf,
+                        relationship="contradicts",
+                        explanation=f"LLM: {result.explanation}",
+                    )
+                )
             elif result.relationship == "supports" and result.confidence >= 0.5:
-                supporting.append(SourceEvidence(
-                    node_id=node.id,
-                    node_text=node.text,
-                    confidence=weighted_conf,
-                    relationship="supports",
-                    explanation=f"LLM: {result.explanation}",
-                ))
+                supporting.append(
+                    SourceEvidence(
+                        node_id=node.id,
+                        node_text=node.text,
+                        confidence=weighted_conf,
+                        relationship="supports",
+                        explanation=f"LLM: {result.explanation}",
+                    )
+                )
             else:
                 logger.debug(
                     "Excluded irrelevant candidate %s (relationship=%s, conf=%.2f)",
-                    node.id, result.relationship, result.confidence,
+                    node.id,
+                    result.relationship,
+                    result.confidence,
                 )
 
         return supporting, contradicting
@@ -457,30 +461,33 @@ class VerificationEngine:
             if sim_score < self.RELEVANCE_THRESHOLD:
                 logger.debug(
                     "Excluded low-relevance candidate %s (sim=%.2f)",
-                    node.id, sim_score,
+                    node.id,
+                    sim_score,
                 )
                 continue
 
-            score = DependencyDetector._contradiction_score(
-                claim.lower(), node.text.lower(), sim_score
-            )
+            score = DependencyDetector._contradiction_score(claim.lower(), node.text.lower(), sim_score)
             weighted_conf = self._weighted_confidence(node, sim_score)
 
             if score > 0.5:
-                contradicting.append(SourceEvidence(
-                    node_id=node.id,
-                    node_text=node.text,
-                    confidence=weighted_conf,
-                    relationship="contradicts",
-                    explanation="Negation mismatch (heuristic)",
-                ))
+                contradicting.append(
+                    SourceEvidence(
+                        node_id=node.id,
+                        node_text=node.text,
+                        confidence=weighted_conf,
+                        relationship="contradicts",
+                        explanation="Negation mismatch (heuristic)",
+                    )
+                )
             else:
-                supporting.append(SourceEvidence(
-                    node_id=node.id,
-                    node_text=node.text,
-                    confidence=weighted_conf,
-                    relationship="supports",
-                ))
+                supporting.append(
+                    SourceEvidence(
+                        node_id=node.id,
+                        node_text=node.text,
+                        confidence=weighted_conf,
+                        relationship="supports",
+                    )
+                )
 
         return supporting, contradicting
 
@@ -510,17 +517,11 @@ class VerificationEngine:
         elif contradicting and not supporting:
             verdict = Verdict.CONTRADICTED
             confidence = contra_conf
-            explanation = (
-                f"Contradicted by {len(contradicting)} node(s) "
-                f"(max confidence: {contra_conf:.2f})."
-            )
+            explanation = f"Contradicted by {len(contradicting)} node(s) (max confidence: {contra_conf:.2f})."
         elif supporting and not contradicting:
             verdict = Verdict.SUPPORTED
             confidence = support_conf
-            explanation = (
-                f"Supported by {len(supporting)} node(s) "
-                f"(max confidence: {support_conf:.2f})."
-            )
+            explanation = f"Supported by {len(supporting)} node(s) (max confidence: {support_conf:.2f})."
         elif contra_conf > support_conf + MARGIN:
             # Contradicting evidence is significantly stronger
             verdict = Verdict.CONTRADICTED
@@ -636,17 +637,13 @@ class VerificationEngine:
         try:
             # Recalculate descendant confidences in topological order
             desc_ids = {d_id for d_id, _ in descendants_with_hops}
-            sorted_ids = self.confidence_engine._topological_sort(
-                self.graph, desc_ids
-            )
+            sorted_ids = self.confidence_engine._topological_sort(self.graph, desc_ids)
 
             new_confidences: Dict[str, float] = {}
             for desc_id in sorted_ids:
                 desc = self.graph.get_node(desc_id)
                 if desc:
-                    new_conf = self.confidence_engine.calculate_node_confidence(
-                        desc, self.graph
-                    )
+                    new_conf = self.confidence_engine.calculate_node_confidence(desc, self.graph)
                     new_confidences[desc_id] = new_conf
                     # Temporarily set for downstream calculations
                     desc.confidence = new_conf
@@ -668,21 +665,22 @@ class VerificationEngine:
                 # Check if this node would be orphaned
                 if node_id in desc.predecessor_nodes:
                     remaining_preds = [
-                        pid for pid in desc.predecessor_nodes
-                        if pid != node_id and pid in self.graph.nodes
+                        pid for pid in desc.predecessor_nodes if pid != node_id and pid in self.graph.nodes
                     ]
                     if not remaining_preds and not desc.sources:
                         orphaned += 1
 
                 if abs(change) > 0.001:  # Only include significant changes
-                    affected.append(RetractedNodeImpact(
-                        node_id=desc_id,
-                        node_text=desc.text,
-                        original_confidence=orig_conf,
-                        new_confidence=new_conf,
-                        change=change,
-                        hops_from_retracted=hop_map.get(desc_id, 0),
-                    ))
+                    affected.append(
+                        RetractedNodeImpact(
+                            node_id=desc_id,
+                            node_text=desc.text,
+                            original_confidence=orig_conf,
+                            new_confidence=new_conf,
+                            change=change,
+                            hops_from_retracted=hop_map.get(desc_id, 0),
+                        )
+                    )
         finally:
             # Restore ALL original confidences — must run even on exception
             for nid, orig_conf in originals.items():

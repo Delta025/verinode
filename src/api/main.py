@@ -9,7 +9,7 @@ Run with:
 
 import os
 from contextlib import asynccontextmanager
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -17,9 +17,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .state import AppState
 import src.api.state as state_mod
-from .routes import graph, nodes, ingest, query, verification, memory, maintenance
+
+from .routes import graph, ingest, maintenance, memory, nodes, query, verification
+from .state import AppState
 
 
 @asynccontextmanager
@@ -62,8 +63,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",   # Vite dev server
-        "http://localhost:3000",   # Alternative React port
+        "http://localhost:5173",  # Vite dev server
+        "http://localhost:3000",  # Alternative React port
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
     ],

@@ -14,11 +14,11 @@ Uses Ollama's JSON mode for grammar-constrained structured output,
 following the same patterns as fact_extraction.py.
 """
 
-from dataclasses import dataclass
-from typing import Dict, Optional, List, Tuple
 import json
 import logging
 import re
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +33,10 @@ def _get_ollama():
     if _ollama is None:
         try:
             import ollama
+
             _ollama = ollama
         except ImportError:
-            raise ImportError(
-                "ollama is required for LLM contradiction detection. "
-                "Install with: pip install ollama"
-            )
+            raise ImportError("ollama is required for LLM contradiction detection. Install with: pip install ollama")
     return _ollama
 
 
@@ -48,11 +46,11 @@ def _get_genai():
     if _genai is None:
         try:
             from google import genai
+
             _genai = genai
         except ImportError:
             raise ImportError(
-                "google-genai is required for Gemini contradiction detection. "
-                "Install with: pip install google-genai"
+                "google-genai is required for Gemini contradiction detection. Install with: pip install google-genai"
             )
     return _genai
 
@@ -61,13 +59,15 @@ def _get_genai():
 # Data structures
 # ------------------------------------------------------------------
 
+
 @dataclass
 class RelevanceResult:
     """Result of a 3-way relevance classification (contradicts/supports/irrelevant)."""
+
     claim: str
     knowledge: str
-    relationship: str           # "contradicts", "supports", "irrelevant"
-    confidence: float           # 0.0-1.0
+    relationship: str  # "contradicts", "supports", "irrelevant"
+    confidence: float  # 0.0-1.0
     explanation: str
     raw_response: str = ""
 
@@ -152,6 +152,7 @@ Respond with JSON only.\
 # Engine
 # ------------------------------------------------------------------
 
+
 class ContradictionChecker:
     """
     LLM-assisted 3-way relevance classification using Ollama.
@@ -232,9 +233,7 @@ class ContradictionChecker:
             logger.debug("check_relevance cache hit")
             return cached
 
-        user_msg = RELEVANCE_USER_TEMPLATE.format(
-            claim=claim, knowledge=knowledge
-        )
+        user_msg = RELEVANCE_USER_TEMPLATE.format(claim=claim, knowledge=knowledge)
 
         try:
             response = self._client.chat(
@@ -297,10 +296,7 @@ class ContradictionChecker:
         results: List[Optional[RelevanceResult]] = [None] * len(pairs)
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_idx = {
-                executor.submit(self.check_relevance, c, k): i
-                for i, (c, k) in enumerate(pairs)
-            }
+            future_to_idx = {executor.submit(self.check_relevance, c, k): i for i, (c, k) in enumerate(pairs)}
             for future in as_completed(future_to_idx):
                 idx = future_to_idx[future]
                 try:
@@ -309,8 +305,10 @@ class ContradictionChecker:
                     logger.warning("Batch relevance pair %d failed: %s", idx, e)
                     c, k = pairs[idx]
                     results[idx] = RelevanceResult(
-                        claim=c, knowledge=k,
-                        relationship="irrelevant", confidence=0.0,
+                        claim=c,
+                        knowledge=k,
+                        relationship="irrelevant",
+                        confidence=0.0,
                         explanation=f"Batch check failed: {e}",
                     )
 
@@ -319,8 +317,10 @@ class ContradictionChecker:
             if r is None:
                 c, k = pairs[i]
                 results[i] = RelevanceResult(
-                    claim=c, knowledge=k,
-                    relationship="irrelevant", confidence=0.0,
+                    claim=c,
+                    knowledge=k,
+                    relationship="irrelevant",
+                    confidence=0.0,
                     explanation="Result was unexpectedly None",
                 )
 
@@ -381,6 +381,7 @@ class ContradictionChecker:
 # ------------------------------------------------------------------
 # Gemini backend
 # ------------------------------------------------------------------
+
 
 class GeminiContradictionChecker:
     """
@@ -455,9 +456,7 @@ class GeminiContradictionChecker:
         if cached is not None:
             return cached
 
-        user_msg = RELEVANCE_USER_TEMPLATE.format(
-            claim=claim, knowledge=knowledge
-        )
+        user_msg = RELEVANCE_USER_TEMPLATE.format(claim=claim, knowledge=knowledge)
         prompt_text = RELEVANCE_SYSTEM_PROMPT + "\n\n" + user_msg
 
         max_attempts = (self.rate_limiter.max_retries + 1) if self.rate_limiter else 1
@@ -466,9 +465,7 @@ class GeminiContradictionChecker:
         for attempt in range(max_attempts):
             if self.rate_limiter:
                 if not self.rate_limiter.wait_for_slot():
-                    raise DailyLimitReached(
-                        "Gemini daily budget exhausted during relevance check"
-                    )
+                    raise DailyLimitReached("Gemini daily budget exhausted during relevance check")
 
             try:
                 response = self._client.models.generate_content(
@@ -491,15 +488,18 @@ class GeminiContradictionChecker:
                         continue
                 logger.warning("Gemini relevance check failed: %s", e)
                 return RelevanceResult(
-                    claim=claim, knowledge=knowledge,
-                    relationship="irrelevant", confidence=0.0,
+                    claim=claim,
+                    knowledge=knowledge,
+                    relationship="irrelevant",
+                    confidence=0.0,
                     explanation=f"Gemini call failed: {e}",
                 )
 
         parsed = ContradictionChecker._parse_relevance_response(raw_text)
 
         result = RelevanceResult(
-            claim=claim, knowledge=knowledge,
+            claim=claim,
+            knowledge=knowledge,
             relationship=parsed["relationship"],
             confidence=parsed["confidence"],
             explanation=parsed["explanation"],
@@ -534,6 +534,7 @@ class GeminiContradictionChecker:
 # Factory
 # ------------------------------------------------------------------
 
+
 def create_contradiction_checker(
     model: Optional[str] = None,
     host: Optional[str] = None,
@@ -564,10 +565,7 @@ def create_contradiction_checker(
     """
     import os
 
-    resolved_backend = (
-        backend
-        or os.environ.get("VERINODE_CHECKER_BACKEND", "ollama")
-    ).lower().strip()
+    resolved_backend = (backend or os.environ.get("VERINODE_CHECKER_BACKEND", "ollama")).lower().strip()
 
     if resolved_backend == "gemini":
         try:
@@ -577,9 +575,7 @@ def create_contradiction_checker(
                 rate_limiter=rate_limiter,
             )
         except Exception as e:
-            logger.info(
-                "Gemini not available; LLM contradiction detection disabled: %s", e
-            )
+            logger.info("Gemini not available; LLM contradiction detection disabled: %s", e)
             return None
     else:
         try:

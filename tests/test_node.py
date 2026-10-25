@@ -3,18 +3,22 @@ Tests for KnowledgeNode: creation, property behavior, status transitions,
 serialization (to_dict/from_dict), and edge cases.
 """
 
-import pytest
-import numpy as np
 from datetime import datetime
 
-from src.core.node import (
-    KnowledgeNode, NodeType, NodeStatus, Source, Derivation,
-)
+import numpy as np
 
+from src.core.node import (
+    Derivation,
+    KnowledgeNode,
+    NodeStatus,
+    NodeType,
+    Source,
+)
 
 # ------------------------------------------------------------------
 # Node creation
 # ------------------------------------------------------------------
+
 
 class TestNodeCreation:
     def test_default_values(self):
@@ -54,6 +58,7 @@ class TestNodeCreation:
 # ------------------------------------------------------------------
 # Confidence property
 # ------------------------------------------------------------------
+
 
 class TestConfidenceProperty:
     def test_getter(self):
@@ -95,6 +100,7 @@ class TestConfidenceProperty:
 # Status transitions
 # ------------------------------------------------------------------
 
+
 class TestStatusTransitions:
     def test_established_at_high_confidence(self):
         node = KnowledgeNode(text="Test", confidence=0.96)
@@ -132,6 +138,7 @@ class TestStatusTransitions:
 # Graph relationship methods
 # ------------------------------------------------------------------
 
+
 class TestRelationships:
     def test_add_predecessor_dedup(self):
         node = KnowledgeNode(text="Test")
@@ -163,6 +170,7 @@ class TestRelationships:
 # Serialization round-trip
 # ------------------------------------------------------------------
 
+
 class TestSerialization:
     def test_round_trip_basic(self):
         """Basic to_dict -> from_dict preserves key fields."""
@@ -184,12 +192,14 @@ class TestSerialization:
 
     def test_round_trip_with_sources(self):
         node = KnowledgeNode(text="Test", node_id="src-test")
-        node.add_source(Source(
-            source_type="journal",
-            title="Nature",
-            author="Dr. Smith",
-            quality_score=0.9,
-        ))
+        node.add_source(
+            Source(
+                source_type="journal",
+                title="Nature",
+                author="Dr. Smith",
+                quality_score=0.9,
+            )
+        )
         d = node.to_dict()
         restored = KnowledgeNode.from_dict(d)
 
@@ -268,6 +278,7 @@ class TestSerialization:
 # Defensive from_dict parsing
 # ------------------------------------------------------------------
 
+
 class TestFromDictDefensive:
     def _base_dict(self):
         """Minimal valid node dict."""
@@ -277,21 +288,21 @@ class TestFromDictDefensive:
     def test_missing_created_at(self):
         """Missing created_at uses default."""
         d = self._base_dict()
-        del d['created_at']
+        del d["created_at"]
         restored = KnowledgeNode.from_dict(d)
         assert isinstance(restored.created_at, datetime)
 
     def test_malformed_created_at(self):
         """Malformed date string doesn't crash."""
         d = self._base_dict()
-        d['created_at'] = "not-a-date"
+        d["created_at"] = "not-a-date"
         restored = KnowledgeNode.from_dict(d)
         assert isinstance(restored.created_at, datetime)  # keeps default
 
     def test_missing_status(self):
         """Missing status uses default determination."""
         d = self._base_dict()
-        del d['status']
+        del d["status"]
         restored = KnowledgeNode.from_dict(d)
         # Should get default status based on confidence
         assert isinstance(restored.status, NodeStatus)
@@ -299,30 +310,30 @@ class TestFromDictDefensive:
     def test_invalid_status(self):
         """Invalid status string doesn't crash."""
         d = self._base_dict()
-        d['status'] = "invalid_status"
+        d["status"] = "invalid_status"
         restored = KnowledgeNode.from_dict(d)
         assert isinstance(restored.status, NodeStatus)
 
     def test_missing_derivation(self):
         """Missing derivation uses default."""
         d = self._base_dict()
-        del d['derivation']
+        del d["derivation"]
         restored = KnowledgeNode.from_dict(d)
         assert restored.derivation.method == "asserted"
 
     def test_empty_sources(self):
         d = self._base_dict()
-        d['sources'] = []
+        d["sources"] = []
         restored = KnowledgeNode.from_dict(d)
         assert restored.sources == []
 
     def test_missing_optional_fields(self):
         """Optional fields default gracefully."""
         d = self._base_dict()
-        d.pop('successor_nodes', None)
-        d.pop('conflicts_with', None)
-        d.pop('metadata', None)
-        d.pop('access_count', None)
+        d.pop("successor_nodes", None)
+        d.pop("conflicts_with", None)
+        d.pop("metadata", None)
+        d.pop("access_count", None)
         restored = KnowledgeNode.from_dict(d)
         assert restored.successor_nodes == []
         assert restored.conflicts_with == []
@@ -333,6 +344,7 @@ class TestFromDictDefensive:
 # ------------------------------------------------------------------
 # Source and Derivation dataclasses
 # ------------------------------------------------------------------
+
 
 class TestSource:
     def test_str_with_all_fields(self):
@@ -364,6 +376,7 @@ class TestDerivation:
 # __str__ and __repr__
 # ------------------------------------------------------------------
 
+
 class TestStringRepresentation:
     def test_str_truncates(self):
         long_text = "A" * 100
@@ -382,6 +395,7 @@ class TestStringRepresentation:
 # ------------------------------------------------------------------
 # Edge labels
 # ------------------------------------------------------------------
+
 
 class TestEdgeLabels:
     """Test edge label storage and serialization on KnowledgeNode."""

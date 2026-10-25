@@ -19,16 +19,14 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from core.loader import LoadedContent, fetch_and_extract, chunk_text, _split_sentences
-
+from core.loader import LoadedContent, _split_sentences, chunk_text, fetch_and_extract
 
 # ---------------------------------------------------------------------------
 # LoadedContent dataclass
 # ---------------------------------------------------------------------------
+
 
 def test_loaded_content_defaults():
     """Minimal construction with just the url fills in sane defaults."""
@@ -65,6 +63,7 @@ def test_loaded_content_full_construction():
 # ---------------------------------------------------------------------------
 # fetch_and_extract  (mock requests + trafilatura)
 # ---------------------------------------------------------------------------
+
 
 def _patch_loader():
     """Return patches for the lazy-imported requests and trafilatura modules."""
@@ -229,6 +228,7 @@ def test_fetch_and_extract_passes_timeout_and_headers():
 # chunk_text  (pure function, no mocks needed)
 # ---------------------------------------------------------------------------
 
+
 def test_chunk_text_empty_string():
     """Empty string returns no chunks."""
     assert chunk_text("") == []
@@ -301,9 +301,7 @@ def test_chunk_text_overlap_sentences():
         last_sent = sents_i[-1] if sents_i else ""
         # It should appear in the next chunk
         if last_sent:
-            assert last_sent in chunks[i + 1], (
-                f"Overlap sentence not found in next chunk: {last_sent!r}"
-            )
+            assert last_sent in chunks[i + 1], f"Overlap sentence not found in next chunk: {last_sent!r}"
 
 
 def test_chunk_text_mixed_short_and_oversized():
@@ -330,6 +328,7 @@ def test_chunk_text_no_empty_chunks():
 # ---------------------------------------------------------------------------
 # _split_sentences
 # ---------------------------------------------------------------------------
+
 
 def test_split_sentences_basic():
     """Splits on sentence-ending punctuation followed by space + uppercase."""

@@ -3,18 +3,18 @@ Tests for the ConfidenceEngine: calculation, propagation, anomaly detection,
 confidence tracing, and impact estimation.
 """
 
-import pytest
-from src.core.graph import KnowledgeGraph
-from src.core.node import KnowledgeNode, NodeType, Source, Derivation
 from src.core.confidence import ConfidenceEngine
-
+from src.core.graph import KnowledgeGraph
+from src.core.node import Derivation, KnowledgeNode, NodeType, Source
 
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
 
-def make_node(text, confidence=0.8, domain="general", node_id=None,
-              predecessors=None, derivation_type="extracted", depth=0):
+
+def make_node(
+    text, confidence=0.8, domain="general", node_id=None, predecessors=None, derivation_type="extracted", depth=0
+):
     """Create a KnowledgeNode for testing."""
     node = KnowledgeNode(
         text=text,
@@ -39,13 +39,15 @@ def build_chain_graph():
     root = make_node("Root fact", confidence=0.9, node_id="root")
     graph.add_node(root)
 
-    mid = make_node("Mid derived", confidence=0.8, node_id="mid",
-                    predecessors=["root"], derivation_type="chain", depth=1)
+    mid = make_node(
+        "Mid derived", confidence=0.8, node_id="mid", predecessors=["root"], derivation_type="chain", depth=1
+    )
     graph.add_node(mid)
     root.add_successor("mid")
 
-    leaf = make_node("Leaf derived", confidence=0.7, node_id="leaf",
-                     predecessors=["mid"], derivation_type="chain", depth=2)
+    leaf = make_node(
+        "Leaf derived", confidence=0.7, node_id="leaf", predecessors=["mid"], derivation_type="chain", depth=2
+    )
     graph.add_node(leaf)
     mid.add_successor("leaf")
 
@@ -61,9 +63,14 @@ def build_convergent_graph():
     graph.add_node(src_a)
     graph.add_node(src_b)
 
-    merged = make_node("Merged conclusion", confidence=0.85, node_id="merged",
-                       predecessors=["src_a", "src_b"],
-                       derivation_type="convergence", depth=1)
+    merged = make_node(
+        "Merged conclusion",
+        confidence=0.85,
+        node_id="merged",
+        predecessors=["src_a", "src_b"],
+        derivation_type="convergence",
+        depth=1,
+    )
     graph.add_node(merged)
     src_a.add_successor("merged")
     src_b.add_successor("merged")
@@ -78,18 +85,25 @@ def build_branching_graph():
     root = make_node("Root", confidence=0.9, node_id="root")
     graph.add_node(root)
 
-    child_a = make_node("Child A", confidence=0.8, node_id="child_a",
-                        predecessors=["root"], derivation_type="inference", depth=1)
-    child_b = make_node("Child B", confidence=0.75, node_id="child_b",
-                        predecessors=["root"], derivation_type="inference", depth=1)
+    child_a = make_node(
+        "Child A", confidence=0.8, node_id="child_a", predecessors=["root"], derivation_type="inference", depth=1
+    )
+    child_b = make_node(
+        "Child B", confidence=0.75, node_id="child_b", predecessors=["root"], derivation_type="inference", depth=1
+    )
     graph.add_node(child_a)
     graph.add_node(child_b)
     root.add_successor("child_a")
     root.add_successor("child_b")
 
-    grandchild = make_node("Grandchild", confidence=0.7, node_id="grandchild",
-                           predecessors=["child_a", "child_b"],
-                           derivation_type="chain", depth=2)
+    grandchild = make_node(
+        "Grandchild",
+        confidence=0.7,
+        node_id="grandchild",
+        predecessors=["child_a", "child_b"],
+        derivation_type="chain",
+        depth=2,
+    )
     graph.add_node(grandchild)
     child_a.add_successor("grandchild")
     child_b.add_successor("grandchild")
@@ -100,6 +114,7 @@ def build_branching_graph():
 # ------------------------------------------------------------------
 # calculate_node_confidence
 # ------------------------------------------------------------------
+
 
 class TestCalculateNodeConfidence:
     def test_no_predecessors_no_sources(self):
@@ -117,10 +132,7 @@ class TestCalculateNodeConfidence:
         engine = ConfidenceEngine()
         graph = KnowledgeGraph()
         node = make_node("Sourced fact", confidence=0.8, node_id="sourced")
-        node.add_source(Source(
-            source_type="journal", title="Nature",
-            quality_score=0.95
-        ))
+        node.add_source(Source(source_type="journal", title="Nature", quality_score=0.95))
         graph.add_node(node)
 
         conf = engine.calculate_node_confidence(node, graph)
@@ -159,7 +171,7 @@ class TestCalculateNodeConfidence:
         # grandchild has chain type with preds [child_a=0.8, child_b=0.75]
         conf = engine.calculate_node_confidence(grandchild, graph)
         # chain: min(0.8, 0.75) * 0.9 * 0.95^2 = 0.75 * 0.9 * 0.9025 = 0.609
-        expected = 0.75 * 0.9 * (0.95 ** 2)
+        expected = 0.75 * 0.9 * (0.95**2)
         assert abs(conf - expected) < 0.01
 
     def test_default_derivation_uses_average(self):
@@ -169,8 +181,9 @@ class TestCalculateNodeConfidence:
         root = make_node("Root", confidence=0.9, node_id="root")
         graph.add_node(root)
 
-        node = make_node("Derived", confidence=0.5, node_id="derived",
-                         predecessors=["root"], derivation_type="custom_type")
+        node = make_node(
+            "Derived", confidence=0.5, node_id="derived", predecessors=["root"], derivation_type="custom_type"
+        )
         graph.add_node(node)
         root.add_successor("derived")
 
@@ -181,13 +194,14 @@ class TestCalculateNodeConfidence:
 
     def test_confidence_clamped_to_min(self):
         """Confidence never drops below min_confidence."""
-        engine = ConfidenceEngine({'min_confidence': 0.1})
+        engine = ConfidenceEngine({"min_confidence": 0.1})
         graph = KnowledgeGraph()
         root = make_node("Root", confidence=0.05, node_id="root")
         graph.add_node(root)
 
-        node = make_node("Derived", confidence=0.5, node_id="derived",
-                         predecessors=["root"], derivation_type="chain", depth=10)
+        node = make_node(
+            "Derived", confidence=0.5, node_id="derived", predecessors=["root"], derivation_type="chain", depth=10
+        )
         graph.add_node(node)
         root.add_successor("derived")
 
@@ -196,16 +210,16 @@ class TestCalculateNodeConfidence:
 
     def test_confidence_clamped_to_max(self):
         """Confidence never exceeds 0.99."""
-        engine = ConfidenceEngine({'convergence_boost': 2.0})
+        engine = ConfidenceEngine({"convergence_boost": 2.0})
         graph = KnowledgeGraph()
         a = make_node("A", confidence=0.99, node_id="a")
         b = make_node("B", confidence=0.99, node_id="b")
         graph.add_node(a)
         graph.add_node(b)
 
-        merged = make_node("Merged", confidence=0.5, node_id="merged",
-                           predecessors=["a", "b"],
-                           derivation_type="convergence")
+        merged = make_node(
+            "Merged", confidence=0.5, node_id="merged", predecessors=["a", "b"], derivation_type="convergence"
+        )
         graph.add_node(merged)
         a.add_successor("merged")
         b.add_successor("merged")
@@ -217,8 +231,7 @@ class TestCalculateNodeConfidence:
         """If all predecessors are missing from graph, fall back to sources."""
         engine = ConfidenceEngine()
         graph = KnowledgeGraph()
-        node = make_node("Orphan derived", confidence=0.5, node_id="orphan",
-                         predecessors=["missing_1", "missing_2"])
+        node = make_node("Orphan derived", confidence=0.5, node_id="orphan", predecessors=["missing_1", "missing_2"])
         graph.add_node(node)
 
         conf = engine.calculate_node_confidence(node, graph)
@@ -232,11 +245,8 @@ class TestCalculateNodeConfidence:
         root = make_node("Root", confidence=0.3, node_id="root")
         graph.add_node(root)
 
-        node = make_node("Derived", confidence=0.5, node_id="derived",
-                         predecessors=["root"], derivation_type="chain")
-        node.add_source(Source(
-            source_type="journal", title="Nature", quality_score=0.95
-        ))
+        node = make_node("Derived", confidence=0.5, node_id="derived", predecessors=["root"], derivation_type="chain")
+        node.add_source(Source(source_type="journal", title="Nature", quality_score=0.95))
         graph.add_node(node)
         root.add_successor("derived")
 
@@ -250,6 +260,7 @@ class TestCalculateNodeConfidence:
 # ------------------------------------------------------------------
 # _noisy_or
 # ------------------------------------------------------------------
+
 
 class TestNoisyOr:
     def test_single_value(self):
@@ -280,6 +291,7 @@ class TestNoisyOr:
 # ------------------------------------------------------------------
 # _topological_sort
 # ------------------------------------------------------------------
+
 
 class TestTopologicalSort:
     def test_linear_chain(self):
@@ -320,9 +332,7 @@ class TestTopologicalSort:
         engine = ConfidenceEngine()
         graph = build_branching_graph()
 
-        sorted_ids = engine._topological_sort(
-            graph, {"root", "child_a", "child_b", "grandchild"}
-        )
+        sorted_ids = engine._topological_sort(graph, {"root", "child_a", "child_b", "grandchild"})
         assert sorted_ids.index("root") < sorted_ids.index("child_a")
         assert sorted_ids.index("root") < sorted_ids.index("child_b")
         assert sorted_ids.index("child_a") < sorted_ids.index("grandchild")
@@ -331,6 +341,7 @@ class TestTopologicalSort:
 # ------------------------------------------------------------------
 # propagate_confidence_update
 # ------------------------------------------------------------------
+
 
 class TestPropagateConfidenceUpdate:
     def test_leaf_update_propagates_nothing(self):
@@ -363,6 +374,7 @@ class TestPropagateConfidenceUpdate:
 # detect_anomalies
 # ------------------------------------------------------------------
 
+
 class TestDetectAnomalies:
     def test_no_anomalies_on_fresh_graph(self):
         """Freshly computed confidences should have no anomalies."""
@@ -376,40 +388,39 @@ class TestDetectAnomalies:
 
     def test_overconfident_anomaly(self):
         """Node with much higher confidence than expected is flagged."""
-        engine = ConfidenceEngine({'anomaly_threshold': 0.1})
+        engine = ConfidenceEngine({"anomaly_threshold": 0.1})
         graph = KnowledgeGraph()
         root = make_node("Root", confidence=0.3, node_id="root")
         graph.add_node(root)
 
         # Derived node claims 0.95 confidence but root is only 0.3
-        derived = make_node("Derived", confidence=0.95, node_id="derived",
-                            predecessors=["root"], derivation_type="chain")
+        derived = make_node(
+            "Derived", confidence=0.95, node_id="derived", predecessors=["root"], derivation_type="chain"
+        )
         graph.add_node(derived)
         root.add_successor("derived")
 
         anomalies = engine.detect_anomalies(graph)
         assert len(anomalies) >= 1
         anom = anomalies[0]
-        assert anom['anomaly_type'] == 'overconfident'
-        assert anom['node_id'] == 'derived'
+        assert anom["anomaly_type"] == "overconfident"
+        assert anom["node_id"] == "derived"
 
     def test_underconfident_anomaly(self):
         """Node with much lower confidence than expected is flagged."""
-        engine = ConfidenceEngine({'anomaly_threshold': 0.1})
+        engine = ConfidenceEngine({"anomaly_threshold": 0.1})
         graph = KnowledgeGraph()
         node = make_node("Sourced", confidence=0.2, node_id="sourced")
-        node.add_source(Source(
-            source_type="journal", title="Nature", quality_score=0.95
-        ))
+        node.add_source(Source(source_type="journal", title="Nature", quality_score=0.95))
         graph.add_node(node)
 
         anomalies = engine.detect_anomalies(graph)
         assert len(anomalies) >= 1
-        assert anomalies[0]['anomaly_type'] == 'underconfident'
+        assert anomalies[0]["anomaly_type"] == "underconfident"
 
     def test_anomalies_sorted_by_severity(self):
         """Anomalies returned sorted by severity (highest first)."""
-        engine = ConfidenceEngine({'anomaly_threshold': 0.05})
+        engine = ConfidenceEngine({"anomaly_threshold": 0.05})
         graph = KnowledgeGraph()
 
         # Node with small deviation
@@ -424,7 +435,7 @@ class TestDetectAnomalies:
 
         anomalies = engine.detect_anomalies(graph)
         if len(anomalies) >= 2:
-            assert anomalies[0]['severity'] >= anomalies[1]['severity']
+            assert anomalies[0]["severity"] >= anomalies[1]["severity"]
 
     def test_no_anomaly_for_orphan_no_sources(self):
         """Nodes with no predecessors and no sources are skipped."""
@@ -441,6 +452,7 @@ class TestDetectAnomalies:
 # trace_confidence_source
 # ------------------------------------------------------------------
 
+
 class TestTraceConfidenceSource:
     def test_trace_leaf_to_root(self):
         """Tracing leaf finds root as source node."""
@@ -448,10 +460,10 @@ class TestTraceConfidenceSource:
         graph = build_chain_graph()
 
         trace = engine.trace_confidence_source(graph, "leaf")
-        assert trace['node_id'] == 'leaf'
-        assert trace['num_ancestors'] >= 1
-        source_ids = [s['id'] for s in trace['source_nodes']]
-        assert 'root' in source_ids
+        assert trace["node_id"] == "leaf"
+        assert trace["num_ancestors"] >= 1
+        source_ids = [s["id"] for s in trace["source_nodes"]]
+        assert "root" in source_ids
 
     def test_trace_root_has_no_ancestors(self):
         """Root node trace has itself as base (no source_nodes from ancestors)."""
@@ -459,8 +471,8 @@ class TestTraceConfidenceSource:
         graph = build_chain_graph()
 
         trace = engine.trace_confidence_source(graph, "root")
-        assert trace['num_ancestors'] == 0
-        assert trace['source_nodes'] == []
+        assert trace["num_ancestors"] == 0
+        assert trace["source_nodes"] == []
 
     def test_trace_nonexistent_node(self):
         """Tracing a nonexistent node returns empty dict."""
@@ -475,10 +487,10 @@ class TestTraceConfidenceSource:
         graph = build_convergent_graph()
 
         trace = engine.trace_confidence_source(graph, "merged")
-        assert trace['num_ancestors'] >= 2
-        source_ids = [s['id'] for s in trace['source_nodes']]
-        assert 'src_a' in source_ids
-        assert 'src_b' in source_ids
+        assert trace["num_ancestors"] >= 2
+        source_ids = [s["id"] for s in trace["source_nodes"]]
+        assert "src_a" in source_ids
+        assert "src_b" in source_ids
 
     def test_trace_includes_min_max_confidence(self):
         """Trace reports min and max source confidences."""
@@ -486,13 +498,14 @@ class TestTraceConfidenceSource:
         graph = build_convergent_graph()
 
         trace = engine.trace_confidence_source(graph, "merged")
-        assert trace['min_source_confidence'] == 0.7
-        assert trace['max_source_confidence'] == 0.8
+        assert trace["min_source_confidence"] == 0.7
+        assert trace["max_source_confidence"] == 0.8
 
 
 # ------------------------------------------------------------------
 # estimate_confidence_impact
 # ------------------------------------------------------------------
+
 
 class TestEstimateConfidenceImpact:
     def test_leaf_change_no_impact(self):
@@ -501,7 +514,7 @@ class TestEstimateConfidenceImpact:
         graph = build_chain_graph()
 
         impact = engine.estimate_confidence_impact(graph, "leaf", 0.1)
-        assert impact['affected_nodes'] == 0
+        assert impact["affected_nodes"] == 0
 
     def test_root_change_affects_descendants(self):
         """Changing root affects mid and leaf."""
@@ -509,10 +522,10 @@ class TestEstimateConfidenceImpact:
         graph = build_chain_graph()
 
         impact = engine.estimate_confidence_impact(graph, "root", 0.3)
-        assert impact['affected_nodes'] >= 1
-        assert impact['current_confidence'] == 0.9
-        assert impact['proposed_confidence'] == 0.3
-        assert impact['max_negative_change'] < 0
+        assert impact["affected_nodes"] >= 1
+        assert impact["current_confidence"] == 0.9
+        assert impact["proposed_confidence"] == 0.3
+        assert impact["max_negative_change"] < 0
 
     def test_nonexistent_node(self):
         """Impact estimate on nonexistent node returns empty dict."""
@@ -527,24 +540,25 @@ class TestEstimateConfidenceImpact:
         graph = build_chain_graph()
         # root is at 0.9, set to 0.95
         impact = engine.estimate_confidence_impact(graph, "root", 0.95)
-        assert impact['max_positive_change'] >= 0
+        assert impact["max_positive_change"] >= 0
 
 
 # ------------------------------------------------------------------
 # Custom configuration
 # ------------------------------------------------------------------
 
+
 class TestCustomConfig:
     def test_custom_inference_strength(self):
-        engine = ConfidenceEngine({'inference_strength': 0.5})
+        engine = ConfidenceEngine({"inference_strength": 0.5})
         assert engine.inference_strength == 0.5
 
     def test_custom_depth_decay(self):
-        engine = ConfidenceEngine({'depth_decay': 0.8})
+        engine = ConfidenceEngine({"depth_decay": 0.8})
         assert engine.depth_decay == 0.8
 
     def test_custom_min_confidence(self):
-        engine = ConfidenceEngine({'min_confidence': 0.2})
+        engine = ConfidenceEngine({"min_confidence": 0.2})
         assert engine.min_confidence == 0.2
 
     def test_default_config(self):
@@ -559,6 +573,7 @@ class TestCustomConfig:
 # ------------------------------------------------------------------
 # Tests: bounded confidence propagation (max_hops)
 # ------------------------------------------------------------------
+
 
 class TestBoundedPropagation:
     """Tests for max_hops parameter in propagation and get_descendants."""

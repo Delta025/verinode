@@ -27,20 +27,20 @@ Key behaviours:
     are silently dropped.
 """
 
-from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any, Set, Tuple
 import logging
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
 
-from .node import KnowledgeNode, NodeType, NodeStatus, Source, SourceTier, Derivation
-from .graph import KnowledgeGraph
 from .confidence import ConfidenceEngine
+from .dependency_detection import DependencyDetector
 from .embeddings import EmbeddingEngine
-from .fact_extraction import FactExtractionEngine, ExtractionResult, ExtractedFact
-from .dependency_detection import DependencyDetector, DetectedDependency, RelationType
-from .llm_contradiction import create_contradiction_checker, ContradictionChecker
 from .entity_index import EntityIndex, extract_content_words
+from .fact_extraction import ExtractedFact, FactExtractionEngine
+from .graph import KnowledgeGraph
+from .llm_contradiction import ContradictionChecker, create_contradiction_checker
+from .node import Derivation, KnowledgeNode, NodeStatus, NodeType, Source, SourceTier
 from .unit_normalizer import normalize_units
 
 logger = logging.getLogger(__name__)
@@ -49,6 +49,7 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------
 # Reciprocal Rank Fusion
 # ------------------------------------------------------------------
+
 
 def reciprocal_rank_fusion(
     ranked_lists: List[List],
@@ -97,32 +98,32 @@ def reciprocal_rank_fusion(
         for nid in best_scores:
             best_scores[nid] = best_scores[nid] / max_score
 
-    return [
-        {"node_id": nid, "score": best_scores.get(nid, 0.5)}
-        for nid, _rrf in sorted_ids[:top_n]
-    ]
+    return [{"node_id": nid, "score": best_scores.get(nid, 0.5)} for nid, _rrf in sorted_ids[:top_n]]
 
 
 # ------------------------------------------------------------------
 # Result data structures
 # ------------------------------------------------------------------
 
+
 @dataclass
 class IngestionVerdict:
     """Verdict for a single extracted fact during ingestion."""
+
     fact: ExtractedFact
     action: str  # "added", "duplicate", "flagged", "rejected"
-    node_id: Optional[str] = None       # ID of created or existing node
+    node_id: Optional[str] = None  # ID of created or existing node
     reason: str = ""
     contradiction_node_ids: List[str] = field(default_factory=list)
     duplicate_node_id: Optional[str] = None
     confidence_before: Optional[float] = None  # for duplicates
-    confidence_after: Optional[float] = None   # for duplicates
+    confidence_after: Optional[float] = None  # for duplicates
 
 
 @dataclass
 class IngestionResult:
     """Result of ingesting one text passage."""
+
     source_text: str
     extraction_model: str
     verdicts: List[IngestionVerdict] = field(default_factory=list)
@@ -155,6 +156,7 @@ class IngestionResult:
 @dataclass
 class BatchIngestionResult:
     """Result of ingesting multiple text passages."""
+
     results: List[IngestionResult] = field(default_factory=list)
 
     @property
@@ -177,6 +179,7 @@ class BatchIngestionResult:
 # ------------------------------------------------------------------
 # Pipeline
 # ------------------------------------------------------------------
+
 
 class Pipeline:
     """
@@ -301,8 +304,8 @@ class Pipeline:
 
         # Retrieval strategies for contradiction candidate discovery
         self.max_contradiction_candidates = 20  # cap total candidates for LLM calls
-        self.entity_retrieval = True           # entity-overlap retrieval (fallback when use_bm25=False)
-        self.max_entity_candidates = 10        # cap entity overlap results
+        self.entity_retrieval = True  # entity-overlap retrieval (fallback when use_bm25=False)
+        self.max_entity_candidates = 10  # cap entity overlap results
 
     # ------------------------------------------------------------------
     # Public API
@@ -340,10 +343,7 @@ class Pipeline:
         )
 
         # 2. Quality filter
-        facts = [
-            f for f in extraction.facts
-            if f.confidence >= self.min_extraction_confidence
-        ]
+        facts = [f for f in extraction.facts if f.confidence >= self.min_extraction_confidence]
 
         # 2.5 Quote verification
         if self.verify_quotes:
@@ -357,7 +357,8 @@ class Pipeline:
                     fact.metadata["quote_verified"] = False
                     logger.info(
                         "Quote verification failed for: %s (confidence penalized to %.2f)",
-                        fact.text[:60], fact.confidence,
+                        fact.text[:60],
+                        fact.confidence,
                     )
                     # Re-check after penalty: might fall below quality threshold
                     if fact.confidence >= self.min_extraction_confidence:
@@ -394,7 +395,8 @@ class Pipeline:
                 if not node:
                     continue
                 deps = self.detector.detect_for_node(
-                    node, self.graph,
+                    node,
+                    self.graph,
                     embedding_engine=self.embedding_engine,
                     contradiction_checker=self.contradiction_checker,
                 )
@@ -404,9 +406,7 @@ class Pipeline:
         # 5. Confidence propagation
         propagated: Set[str] = set()
         for nid in new_node_ids:
-            affected = self.confidence_engine.propagate_confidence_update(
-                self.graph, nid, max_hops=5
-            )
+            affected = self.confidence_engine.propagate_confidence_update(self.graph, nid, max_hops=5)
             propagated.update(affected)
         result.nodes_propagated = len(propagated)
 
@@ -447,21 +447,14 @@ class Pipeline:
         # Build (text, source) pairs
         if sources is not None:
             if len(sources) != len(texts):
-                raise ValueError(
-                    f"sources length ({len(sources)}) must match "
-                    f"texts length ({len(texts)})"
-                )
+                raise ValueError(f"sources length ({len(sources)}) must match texts length ({len(texts)})")
             pairs = list(zip(texts, sources))
         else:
             pairs = [(t, source) for t in texts]
 
         # Sort by source tier when tiered ingestion is enabled
         if self.use_tiered_ingestion:
-            pairs.sort(
-                key=lambda p: SourceTier.from_quality_score(
-                    p[1].quality_score if p[1] else 0.0
-                ).sort_priority
-            )
+            pairs.sort(key=lambda p: SourceTier.from_quality_score(p[1].quality_score if p[1] else 0.0).sort_priority)
 
         for text, src in pairs:
             r = self.ingest(text, source=src, domain=domain)
@@ -510,9 +503,7 @@ class Pipeline:
             # Reset confidence floor from conflict penalty (0.3 cap)
             # to a reasonable value based on source tier
             if node.confidence <= 0.30:
-                max_source_quality = max(
-                    (s.quality_score for s in node.sources), default=0.5
-                )
+                max_source_quality = max((s.quality_score for s in node.sources), default=0.5)
                 tier = SourceTier.from_quality_score(max_source_quality)
                 tier_cap = tier.confidence_cap
                 # Restore to source-tier-based default
@@ -578,9 +569,7 @@ class Pipeline:
         # --- Contradiction check (runs first) ---
         contradictions = self._find_contradictions(fact.text)
         if contradictions:
-            return self._handle_contradictions(
-                fact, contradictions, source, model
-            )
+            return self._handle_contradictions(fact, contradictions, source, model)
 
         # --- Deduplication (only if no contradiction) ---
         dup_id = self._find_duplicate(fact.text)
@@ -598,9 +587,7 @@ class Pipeline:
         if self.embedding_engine.index_size == 0:
             return None
 
-        results = self.embedding_engine.search(
-            text, k=1, threshold=self.duplicate_threshold
-        )
+        results = self.embedding_engine.search(text, k=1, threshold=self.duplicate_threshold)
         if results:
             return results[0]["node_id"]
         return None
@@ -636,7 +623,7 @@ class Pipeline:
             action="duplicate",
             node_id=existing_id,
             duplicate_node_id=existing_id,
-            reason=f"Near-duplicate of existing node (boosted confidence)",
+            reason="Near-duplicate of existing node (boosted confidence)",
             confidence_before=old_conf,
             confidence_after=new_conf,
         )
@@ -669,7 +656,9 @@ class Pipeline:
         """
         # Use inverted index for O(k) lookup instead of O(N) scan
         all_matches = self.entity_index.find_matches(
-            text, min_overlap=2, exclude_ids=exclude_ids,
+            text,
+            min_overlap=2,
+            exclude_ids=exclude_ids,
         )
         if not all_matches:
             return []
@@ -705,17 +694,21 @@ class Pipeline:
                     norm_n = float(np.linalg.norm(node_vec))
                     score = dot / (norm_q * norm_n) if (norm_q * norm_n) > 0 else 0.0
 
-            entity_candidates.append({
-                "node_id": node_id,
-                "score": score,
-                "source": "entity_overlap",
-                "overlap": overlap_count,
-            })
+            entity_candidates.append(
+                {
+                    "node_id": node_id,
+                    "score": score,
+                    "source": "entity_overlap",
+                    "overlap": overlap_count,
+                }
+            )
 
         return entity_candidates
 
     def _apply_content_filters(
-        self, text: str, candidates: List[Dict],
+        self,
+        text: str,
+        candidates: List[Dict],
     ) -> List[Dict]:
         """
         Filter candidates using content-word overlap.
@@ -754,12 +747,15 @@ class Pipeline:
         if len(filtered) < len(candidates):
             logger.debug(
                 "Content filters: %d -> %d candidates",
-                len(candidates), len(filtered),
+                len(candidates),
+                len(filtered),
             )
         return filtered
 
     def _find_contradictions(
-        self, text: str, exclude_node_id: Optional[str] = None,
+        self,
+        text: str,
+        exclude_node_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Find existing high-confidence nodes that may contradict the
@@ -799,7 +795,9 @@ class Pipeline:
 
             exclude = {exclude_node_id} if exclude_node_id else None
             bm25_results = self.entity_index.bm25_search(
-                text, top_k=12, exclude_ids=exclude,
+                text,
+                top_k=12,
+                exclude_ids=exclude,
             )
 
             candidates = reciprocal_rank_fusion(
@@ -811,9 +809,7 @@ class Pipeline:
             # Legacy path: embedding + entity overlap (no BM25)
             candidates = []
             if self.embedding_engine.index_size > 0:
-                candidates = self.embedding_engine.search(
-                    text, k=8, threshold=0.45
-                )
+                candidates = self.embedding_engine.search(text, k=8, threshold=0.45)
 
             if self.entity_retrieval:
                 seen_ids = {c["node_id"] for c in candidates}
@@ -833,17 +829,18 @@ class Pipeline:
                 )
                 logger.debug(
                     "Re-ranked %d pipeline candidates for: %s",
-                    len(candidates), text[:60],
+                    len(candidates),
+                    text[:60],
                 )
             except Exception as e:
                 logger.warning(
-                    "Pipeline cross-encoder reranking failed, "
-                    "falling back to original order: %s", e,
+                    "Pipeline cross-encoder reranking failed, falling back to original order: %s",
+                    e,
                 )
 
         # Cap total candidates
         if len(candidates) > self.max_contradiction_candidates:
-            candidates = candidates[:self.max_contradiction_candidates]
+            candidates = candidates[: self.max_contradiction_candidates]
 
         # Exclude self (used by rebuild_contradictions)
         if exclude_node_id:
@@ -853,8 +850,8 @@ class Pipeline:
         candidates = self._apply_content_filters(text, candidates)
 
         # Phase 1: Heuristic pre-filter
-        heuristic_hits: List[str] = []          # node IDs flagged by heuristic
-        heuristic_misses: List[Dict] = []       # candidates heuristic did NOT flag
+        heuristic_hits: List[str] = []  # node IDs flagged by heuristic
+        heuristic_misses: List[Dict] = []  # candidates heuristic did NOT flag
 
         for cand in candidates:
             node = self.graph.get_node(cand["node_id"])
@@ -862,9 +859,7 @@ class Pipeline:
                 continue
 
             sim_score = cand.get("score", 0.5)
-            score = DependencyDetector._contradiction_score(
-                text.lower(), node.text.lower(), sim_score
-            )
+            score = DependencyDetector._contradiction_score(text.lower(), node.text.lower(), sim_score)
             if score > 0.5:
                 heuristic_hits.append(node.id)
             else:
@@ -877,8 +872,8 @@ class Pipeline:
 
             # Collect all pairs for batch LLM checking
             # Track which are heuristic hits (fallback to heuristic on LLM failure)
-            all_pairs: List[tuple] = []         # (text, node_text)
-            pair_node_ids: List[str] = []       # corresponding node IDs
+            all_pairs: List[tuple] = []  # (text, node_text)
+            pair_node_ids: List[str] = []  # corresponding node IDs
             pair_is_heuristic: List[bool] = []  # True = heuristic hit (trust on LLM failure)
 
             for nid in heuristic_hits:
@@ -902,39 +897,42 @@ class Pipeline:
 
             # Phase 2: Unit normalization for LLM pairs
             if self.use_unit_normalization and all_pairs:
-                llm_pairs = [
-                    (normalize_units(a), normalize_units(b))
-                    for a, b in all_pairs
-                ]
+                llm_pairs = [(normalize_units(a), normalize_units(b)) for a, b in all_pairs]
             else:
                 llm_pairs = all_pairs
 
             # 3-way relevance classification (filters false positives)
-            relevance_results = self.contradiction_checker.check_relevance_batch(
-                llm_pairs, max_workers=4
-            )
+            relevance_results = self.contradiction_checker.check_relevance_batch(llm_pairs, max_workers=4)
 
             for i, result in enumerate(relevance_results):
                 nid = pair_node_ids[i]
                 is_heuristic = pair_is_heuristic[i]
 
                 if result.relationship == "contradicts" and result.confidence >= self.llm_contradiction_confidence:
-                    verified.append({
-                        "node_id": nid,
-                        "reason": f"LLM (contradiction): {result.explanation}",
-                    })
-                elif is_heuristic and result.confidence == 0.0 and result.explanation and "failed" in result.explanation.lower():
-                    verified.append({
-                        "node_id": nid,
-                        "reason": "Negation mismatch (heuristic, LLM unavailable)",
-                    })
+                    verified.append(
+                        {
+                            "node_id": nid,
+                            "reason": f"LLM (contradiction): {result.explanation}",
+                        }
+                    )
+                elif (
+                    is_heuristic
+                    and result.confidence == 0.0
+                    and result.explanation
+                    and "failed" in result.explanation.lower()
+                ):
+                    verified.append(
+                        {
+                            "node_id": nid,
+                            "reason": "Negation mismatch (heuristic, LLM unavailable)",
+                        }
+                    )
 
             return verified
 
         # No LLM: return heuristic results only
         return [
-            {"node_id": nid, "reason": "Negation mismatch on semantically similar content"}
-            for nid in heuristic_hits
+            {"node_id": nid, "reason": "Negation mismatch on semantically similar content"} for nid in heuristic_hits
         ]
 
     def _handle_contradictions(
@@ -956,10 +954,7 @@ class Pipeline:
                     part += f" [{c['reason']}]"
                 contra_parts.append(part)
 
-        reason = (
-            f"Contradicts existing high-confidence node(s): "
-            + "; ".join(contra_parts)
-        )
+        reason = "Contradicts existing high-confidence node(s): " + "; ".join(contra_parts)
 
         if self.reject_contradictions:
             return IngestionVerdict(

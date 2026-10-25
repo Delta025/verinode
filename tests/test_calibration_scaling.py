@@ -8,15 +8,16 @@ Run with: pytest tests/test_calibration_scaling.py --run-calibration
 """
 
 import os
-import time
 import tempfile
+import time
+
 import pytest
 
+from src.core.confidence import ConfidenceEngine
+from src.core.dependency_detection import DependencyDetector
+from src.core.embeddings import EmbeddingEngine
 from src.core.graph import KnowledgeGraph
 from src.core.node import KnowledgeNode, NodeType, Source
-from src.core.embeddings import EmbeddingEngine
-from src.core.dependency_detection import DependencyDetector
-from src.core.confidence import ConfidenceEngine
 from src.core.storage import SqliteGraph
 
 pytestmark = pytest.mark.calibration
@@ -73,8 +74,8 @@ def _make_linear_chain(n_nodes):
 
 # ── Search Latency ─────────────────────────────────────────────────────
 
-class TestSearchLatency:
 
+class TestSearchLatency:
     @pytest.fixture(scope="class")
     def embed(self):
         return EmbeddingEngine()
@@ -112,8 +113,8 @@ class TestSearchLatency:
 
 # ── Index Build Time ───────────────────────────────────────────────────
 
-class TestIndexBuild:
 
+class TestIndexBuild:
     def test_index_200_nodes_under_30s(self):
         """Building index for 200 nodes should complete under 30s."""
         graph = _make_graph(200)
@@ -148,8 +149,8 @@ class TestIndexBuild:
 
 # ── Dependency Detection ───────────────────────────────────────────────
 
-class TestDependencyDetection:
 
+class TestDependencyDetection:
     def test_detect_50_nodes_under_30s(self):
         """Dependency detection on 50 nodes should complete under 30s."""
         graph = _make_graph(50)
@@ -167,8 +168,8 @@ class TestDependencyDetection:
 
 # ── Confidence Propagation ─────────────────────────────────────────────
 
-class TestConfidencePropagation:
 
+class TestConfidencePropagation:
     def test_chain_100_under_1s(self):
         """Propagation on 100-node chain should complete under 1s."""
         graph = _make_linear_chain(100)
@@ -193,7 +194,7 @@ class TestConfidencePropagation:
         graph.nodes[root_id].confidence = 0.5
 
         t0 = time.perf_counter()
-        affected = conf_engine.propagate_confidence_update(graph, root_id)
+        conf_engine.propagate_confidence_update(graph, root_id)
         elapsed = time.perf_counter() - t0
 
         assert elapsed < 2.0, f"Propagation took {elapsed:.3f}s > 2s on 200-node chain"
@@ -216,15 +217,13 @@ class TestConfidencePropagation:
         # (generous bound to avoid flaky tests)
         if times[50] > 0:
             ratio = times[100] / times[50]
-            assert ratio < 5.0, (
-                f"Propagation ratio {ratio:.1f}x (50→100 nodes) suggests > linear scaling"
-            )
+            assert ratio < 5.0, f"Propagation ratio {ratio:.1f}x (50→100 nodes) suggests > linear scaling"
 
 
 # ── SQLite I/O ─────────────────────────────────────────────────────────
 
-class TestSqliteIO:
 
+class TestSqliteIO:
     def test_save_200_nodes_under_10s(self):
         """Saving 200 nodes to SQLite should complete under 10s."""
         graph = _make_graph(200)
@@ -292,8 +291,8 @@ class TestSqliteIO:
 
 # ── Node Throughput ────────────────────────────────────────────────────
 
-class TestNodeThroughput:
 
+class TestNodeThroughput:
     def test_add_500_nodes_under_1s(self):
         """Adding 500 nodes should complete under 1 second."""
         graph = KnowledgeGraph()

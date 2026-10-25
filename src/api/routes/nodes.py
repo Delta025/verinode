@@ -1,10 +1,11 @@
 """Node routes: list, detail, explain, trace, neighbors, update."""
 
-from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional
 
+from fastapi import APIRouter, HTTPException, Query
+
 import src.api.state as state_mod
-from src.api.schemas import NodeSummary, NodeDetail, SourceInfo, NodeNeighbors, NodeUpdateRequest, NodeUpdateResponse
+from src.api.schemas import NodeDetail, NodeNeighbors, NodeSummary, NodeUpdateRequest, NodeUpdateResponse, SourceInfo
 
 router = APIRouter(tags=["nodes"])
 
@@ -25,21 +26,25 @@ def _node_to_detail(node) -> NodeDetail:
     """Convert a KnowledgeNode to a NodeDetail."""
     sources = []
     for s in node.sources:
-        sources.append(SourceInfo(
-            source_type=s.source_type or "",
-            title=s.title or "",
-            author=s.author or "",
-            date=str(s.date) if s.date else None,
-            url=s.url or "",
-            quality_score=s.quality_score,
-        ))
+        sources.append(
+            SourceInfo(
+                source_type=s.source_type or "",
+                title=s.title or "",
+                author=s.author or "",
+                date=str(s.date) if s.date else None,
+                url=s.url or "",
+                quality_score=s.quality_score,
+            )
+        )
 
     return NodeDetail(
         id=node.id,
         text=node.text,
         node_type=node.node_type.value if hasattr(node.node_type, "value") else str(node.node_type),
         confidence=node.confidence,
-        confidence_bounds=list(node.confidence_bounds) if hasattr(node, "confidence_bounds") and node.confidence_bounds else None,
+        confidence_bounds=list(node.confidence_bounds)
+        if hasattr(node, "confidence_bounds") and node.confidence_bounds
+        else None,
         domain=node.domain or "general",
         status=node.status.value if hasattr(node.status, "value") else str(node.status),
         sources=sources,
@@ -70,7 +75,9 @@ def list_nodes(
     if domain:
         nodes = [n for n in nodes if n.domain == domain]
     if node_type:
-        nodes = [n for n in nodes if (n.node_type.value if hasattr(n.node_type, "value") else str(n.node_type)) == node_type]
+        nodes = [
+            n for n in nodes if (n.node_type.value if hasattr(n.node_type, "value") else str(n.node_type)) == node_type
+        ]
     if status:
         nodes = [n for n in nodes if (n.status.value if hasattr(n.status, "value") else str(n.status)) == status]
 
@@ -83,7 +90,7 @@ def list_nodes(
         nodes.sort(key=lambda n: n.text.lower())
 
     # Paginate
-    nodes = nodes[offset:offset + limit]
+    nodes = nodes[offset : offset + limit]
 
     return [_node_to_summary(n) for n in nodes]
 
@@ -174,6 +181,7 @@ def update_node(node_id: str, req: NodeUpdateRequest):
 
     if req.status is not None:
         from src.core.node import NodeStatus
+
         try:
             node.status = NodeStatus(req.status)
         except ValueError:

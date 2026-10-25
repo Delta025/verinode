@@ -3,22 +3,19 @@ Tests for KnowledgeGraph: CRUD operations, index consistency, traversal,
 statistics, and save/load round-trips.
 """
 
-import pytest
 import json
-import tempfile
-import os
-from pathlib import Path
+
+import pytest
 
 from src.core.graph import KnowledgeGraph
-from src.core.node import KnowledgeNode, NodeType, NodeStatus, Source, Derivation
-
+from src.core.node import KnowledgeNode, NodeStatus, NodeType
 
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
 
-def make_node(text, confidence=0.8, domain="general", node_id=None,
-              node_type=NodeType.FACT, predecessors=None):
+
+def make_node(text, confidence=0.8, domain="general", node_id=None, node_type=NodeType.FACT, predecessors=None):
     return KnowledgeNode(
         text=text,
         node_type=node_type,
@@ -32,6 +29,7 @@ def make_node(text, confidence=0.8, domain="general", node_id=None,
 # ------------------------------------------------------------------
 # Add / Remove
 # ------------------------------------------------------------------
+
 
 class TestAddRemove:
     def test_add_node(self):
@@ -91,6 +89,7 @@ class TestAddRemove:
 # ------------------------------------------------------------------
 # Index consistency
 # ------------------------------------------------------------------
+
 
 class TestIndexConsistency:
     def test_domain_index_on_add(self):
@@ -170,8 +169,7 @@ class TestIndexConsistency:
         """Index stays consistent through add/remove cycles."""
         graph = KnowledgeGraph()
         for i in range(10):
-            graph.add_node(make_node(f"Node {i}", domain="test",
-                                     node_id=f"n{i}"))
+            graph.add_node(make_node(f"Node {i}", domain="test", node_id=f"n{i}"))
         for i in range(0, 10, 2):  # remove evens
             graph.remove_node(f"n{i}")
 
@@ -186,16 +184,17 @@ class TestIndexConsistency:
 # Query methods
 # ------------------------------------------------------------------
 
+
 class TestQueryMethods:
     def _build_graph(self):
         graph = KnowledgeGraph()
-        graph.add_node(make_node("Water boils", domain="chemistry",
-                                 confidence=0.9, node_id="chem1"))
-        graph.add_node(make_node("H2O formula", domain="chemistry",
-                                 confidence=0.95, node_id="chem2",
-                                 node_type=NodeType.DEFINITION))
-        graph.add_node(make_node("F=ma", domain="physics",
-                                 confidence=0.99, node_id="phys1"))
+        graph.add_node(make_node("Water boils", domain="chemistry", confidence=0.9, node_id="chem1"))
+        graph.add_node(
+            make_node(
+                "H2O formula", domain="chemistry", confidence=0.95, node_id="chem2", node_type=NodeType.DEFINITION
+            )
+        )
+        graph.add_node(make_node("F=ma", domain="physics", confidence=0.99, node_id="phys1"))
         return graph
 
     def test_get_by_domain(self):
@@ -234,6 +233,7 @@ class TestQueryMethods:
 # ------------------------------------------------------------------
 # Traversal
 # ------------------------------------------------------------------
+
 
 class TestTraversal:
     def _build_chain(self):
@@ -289,6 +289,7 @@ class TestTraversal:
 # Contradictions
 # ------------------------------------------------------------------
 
+
 class TestContradictions:
     def test_add_contradiction(self):
         graph = KnowledgeGraph()
@@ -314,11 +315,12 @@ class TestContradictions:
 # Statistics
 # ------------------------------------------------------------------
 
+
 class TestStatistics:
     def test_statistics_on_empty(self):
         graph = KnowledgeGraph()
         stats = graph.get_statistics()
-        assert stats['total_nodes'] == 0
+        assert stats["total_nodes"] == 0
 
     def test_statistics_counts(self):
         graph = KnowledgeGraph()
@@ -327,9 +329,9 @@ class TestStatistics:
         graph.add_node(make_node("C", domain="phys", confidence=0.7, node_id="c"))
 
         stats = graph.get_statistics()
-        assert stats['total_nodes'] == 3
-        assert stats['nodes_by_domain']['chem'] == 2
-        assert stats['nodes_by_domain']['phys'] == 1
+        assert stats["total_nodes"] == 3
+        assert stats["nodes_by_domain"]["chem"] == 2
+        assert stats["nodes_by_domain"]["phys"] == 1
 
     def test_statistics_avg_confidence(self):
         graph = KnowledgeGraph()
@@ -337,22 +339,22 @@ class TestStatistics:
         graph.add_node(make_node("B", confidence=0.8, node_id="b"))
 
         stats = graph.get_statistics()
-        assert abs(stats['avg_confidence'] - 0.7) < 0.01
+        assert abs(stats["avg_confidence"] - 0.7) < 0.01
 
 
 # ------------------------------------------------------------------
 # Save / Load round trip
 # ------------------------------------------------------------------
 
+
 class TestSaveLoad:
     def test_save_load_round_trip(self, tmp_path):
         """Graph survives a save/load cycle."""
         graph = KnowledgeGraph()
-        graph.add_node(make_node("Water boils at 100C", domain="chemistry",
-                                 confidence=0.9, node_id="n1"))
-        graph.add_node(make_node("H2O is water", domain="chemistry",
-                                 confidence=0.95, node_id="n2",
-                                 predecessors=["n1"]))
+        graph.add_node(make_node("Water boils at 100C", domain="chemistry", confidence=0.9, node_id="n1"))
+        graph.add_node(
+            make_node("H2O is water", domain="chemistry", confidence=0.95, node_id="n2", predecessors=["n1"])
+        )
 
         filepath = str(tmp_path / "test_graph.json")
         graph.save(filepath)
@@ -380,6 +382,7 @@ class TestSaveLoad:
 # Dunder methods
 # ------------------------------------------------------------------
 
+
 class TestDunderMethods:
     def test_len(self):
         graph = KnowledgeGraph()
@@ -404,18 +407,32 @@ class TestDunderMethods:
 # Defensive save/load
 # ------------------------------------------------------------------
 
+
 class TestSaveLoadDefensive:
     def test_load_skips_invalid_node_data(self, tmp_path):
         """Load skips nodes missing required fields without crashing."""
         data = {
             "nodes": [
-                {"id": "good", "text": "Valid fact", "node_type": "fact",
-                 "confidence": 0.8, "domain": "general",
-                 "predecessor_nodes": [], "successor_nodes": [],
-                 "conflicts_with": [], "sources": [],
-                 "derivation": {"method": "asserted", "derivation_type": "extracted",
-                                "inference_depth": 0, "notes": ""},
-                 "embedding": None, "metadata": {}, "access_count": 0},
+                {
+                    "id": "good",
+                    "text": "Valid fact",
+                    "node_type": "fact",
+                    "confidence": 0.8,
+                    "domain": "general",
+                    "predecessor_nodes": [],
+                    "successor_nodes": [],
+                    "conflicts_with": [],
+                    "sources": [],
+                    "derivation": {
+                        "method": "asserted",
+                        "derivation_type": "extracted",
+                        "inference_depth": 0,
+                        "notes": "",
+                    },
+                    "embedding": None,
+                    "metadata": {},
+                    "access_count": 0,
+                },
                 # Missing 'text' — should be skipped
                 {"id": "bad", "confidence": 0.5},
             ]
@@ -458,6 +475,7 @@ class TestSaveLoadDefensive:
 # Remove with inconsistent back-links
 # ------------------------------------------------------------------
 
+
 class TestRemoveDefensive:
     def test_remove_node_with_missing_backlink(self):
         """Removing a node when back-link is already gone doesn't crash."""
@@ -493,13 +511,12 @@ class TestRemoveDefensive:
 # Potential contradictions
 # ------------------------------------------------------------------
 
+
 class TestFindPotentialContradictions:
     def test_finds_negation_contradiction(self):
         graph = KnowledgeGraph()
-        n1 = make_node("Water is a good conductor of electricity",
-                        domain="physics", node_id="p1")
-        n2 = make_node("Water is not a good conductor of electricity",
-                        domain="physics", node_id="p2")
+        n1 = make_node("Water is a good conductor of electricity", domain="physics", node_id="p1")
+        n2 = make_node("Water is not a good conductor of electricity", domain="physics", node_id="p2")
         graph.add_node(n1)
         graph.add_node(n2)
 
@@ -510,10 +527,8 @@ class TestFindPotentialContradictions:
     def test_no_contradiction_across_domains(self):
         """Nodes in different domains are not compared."""
         graph = KnowledgeGraph()
-        n1 = make_node("Water freezes at zero degrees",
-                        domain="chemistry", node_id="c1")
-        n2 = make_node("Water does not freeze at zero degrees",
-                        domain="physics", node_id="p1")
+        n1 = make_node("Water freezes at zero degrees", domain="chemistry", node_id="c1")
+        n2 = make_node("Water does not freeze at zero degrees", domain="physics", node_id="p1")
         graph.add_node(n1)
         graph.add_node(n2)
 
@@ -533,6 +548,7 @@ class TestFindPotentialContradictions:
 # ------------------------------------------------------------------
 # Cycle detection
 # ------------------------------------------------------------------
+
 
 class TestCycleDetection:
     """Test the would_create_cycle method and cycle guards in add_node."""
@@ -615,6 +631,7 @@ class TestCycleDetection:
 # ------------------------------------------------------------------
 # Edge labels in graph
 # ------------------------------------------------------------------
+
 
 class TestEdgeLabelsInGraph:
     """Test edge label preservation through graph operations."""

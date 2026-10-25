@@ -32,14 +32,14 @@ Usage:
     report = engine.run_maintenance(graph)
 """
 
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Tuple, Set
 import logging
 import math
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import List, Optional, Set
 
-from .node import KnowledgeNode, NodeStatus
 from .graph import KnowledgeGraph
+from .node import KnowledgeNode, NodeStatus
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +48,11 @@ logger = logging.getLogger(__name__)
 # Data structures
 # ------------------------------------------------------------------
 
+
 @dataclass
 class DecayResult:
     """Result of applying staleness decay to a single node."""
+
     node_id: str
     node_text: str
     original_confidence: float
@@ -58,12 +60,13 @@ class DecayResult:
     days_since_validated: float
     decay_applied: float  # The multiplicative decay factor
     effective_half_life: float = 90.0  # Actual half-life used (may differ from base)
-    num_sources: int = 0               # Number of corroborating sources
+    num_sources: int = 0  # Number of corroborating sources
 
 
 @dataclass
 class StrengthResult:
     """Result of strengthening a pathway."""
+
     node_id: str
     node_text: str
     original_confidence: float
@@ -75,6 +78,7 @@ class StrengthResult:
 @dataclass
 class DoubtFlag:
     """A node flagged for review."""
+
     node_id: str
     node_text: str
     confidence: float
@@ -85,6 +89,7 @@ class DoubtFlag:
 @dataclass
 class MaintenanceReport:
     """Summary of a full maintenance cycle."""
+
     timestamp: datetime
     nodes_examined: int
     nodes_decayed: int
@@ -100,6 +105,7 @@ class MaintenanceReport:
 # ------------------------------------------------------------------
 # Engine
 # ------------------------------------------------------------------
+
 
 class NeuroplasticityEngine:
     """
@@ -117,24 +123,20 @@ class NeuroplasticityEngine:
         decay_min_confidence: float = 0.1,
         decay_grace_period_days: float = 7.0,
         decay_protected_statuses: Optional[Set[NodeStatus]] = None,
-
         # Corroboration-adjusted decay parameters
         corroboration_decay_enabled: bool = True,
         corroboration_scale_factor: float = 100.0,
         corroboration_min_multiplier: float = 0.5,
         corroboration_max_multiplier: float = 2.0,
-
         # Pathway strengthening parameters
         strengthen_boost_per_access: float = 0.005,
         strengthen_max_boost: float = 0.15,
         strengthen_access_threshold: int = 3,
         strengthen_validation_boost: float = 0.02,
-
         # Doubt flagging parameters
         doubt_conflict_threshold: int = 1,
         doubt_low_confidence_threshold: float = 0.3,
         doubt_stale_days_threshold: float = 180.0,
-
         # Optional confidence propagation after maintenance
         confidence_engine=None,
         propagation_max_hops: int = 3,
@@ -315,20 +317,23 @@ class NeuroplasticityEngine:
                 node.confidence = new_conf
                 node.update_status()
 
-                results.append(DecayResult(
-                    node_id=node_id,
-                    node_text=node.text,
-                    original_confidence=original_conf,
-                    new_confidence=new_conf,
-                    days_since_validated=days,
-                    decay_applied=decay_factor,
-                    effective_half_life=effective_half_life,
-                    num_sources=len(node.sources),
-                ))
+                results.append(
+                    DecayResult(
+                        node_id=node_id,
+                        node_text=node.text,
+                        original_confidence=original_conf,
+                        new_confidence=new_conf,
+                        days_since_validated=days,
+                        decay_applied=decay_factor,
+                        effective_half_life=effective_half_life,
+                        num_sources=len(node.sources),
+                    )
+                )
 
         logger.info(
             "Staleness decay: %d/%d nodes decayed",
-            len(results), len(graph),
+            len(results),
+            len(graph),
         )
         return results
 
@@ -427,9 +432,7 @@ class NeuroplasticityEngine:
         """
         results = []
         for node_id in node_ids:
-            result = self.strengthen_pathway(
-                graph, node_id, is_validation=is_validation
-            )
+            result = self.strengthen_pathway(graph, node_id, is_validation=is_validation)
             if result is not None:
                 results.append(result)
         return results
@@ -468,29 +471,30 @@ class NeuroplasticityEngine:
             # Check for conflicts
             if len(node.conflicts_with) >= self.doubt_conflict_threshold:
                 # Verify conflicts still exist in graph
-                active_conflicts = [
-                    cid for cid in node.conflicts_with
-                    if cid in graph.nodes
-                ]
+                active_conflicts = [cid for cid in node.conflicts_with if cid in graph.nodes]
                 if len(active_conflicts) >= self.doubt_conflict_threshold:
                     severity = "high" if len(active_conflicts) >= 3 else "medium"
-                    flags.append(DoubtFlag(
-                        node_id=node_id,
-                        node_text=node.text,
-                        confidence=node.confidence,
-                        reason=f"Has {len(active_conflicts)} active conflict(s)",
-                        severity=severity,
-                    ))
+                    flags.append(
+                        DoubtFlag(
+                            node_id=node_id,
+                            node_text=node.text,
+                            confidence=node.confidence,
+                            reason=f"Has {len(active_conflicts)} active conflict(s)",
+                            severity=severity,
+                        )
+                    )
 
             # Check for very low confidence
             if node.confidence < self.doubt_low_confidence_threshold:
-                flags.append(DoubtFlag(
-                    node_id=node_id,
-                    node_text=node.text,
-                    confidence=node.confidence,
-                    reason=f"Very low confidence ({node.confidence:.2f})",
-                    severity="medium",
-                ))
+                flags.append(
+                    DoubtFlag(
+                        node_id=node_id,
+                        node_text=node.text,
+                        confidence=node.confidence,
+                        reason=f"Very low confidence ({node.confidence:.2f})",
+                        severity="medium",
+                    )
+                )
 
             # Check for staleness
             try:
@@ -500,23 +504,27 @@ class NeuroplasticityEngine:
                 days = 0
 
             if days >= self.doubt_stale_days_threshold:
-                flags.append(DoubtFlag(
-                    node_id=node_id,
-                    node_text=node.text,
-                    confidence=node.confidence,
-                    reason=f"Not validated in {days:.0f} days",
-                    severity="low",
-                ))
+                flags.append(
+                    DoubtFlag(
+                        node_id=node_id,
+                        node_text=node.text,
+                        confidence=node.confidence,
+                        reason=f"Not validated in {days:.0f} days",
+                        severity="low",
+                    )
+                )
 
             # Check for contested status without resolution
             if node.status == NodeStatus.CONTESTED and node.access_count == 0:
-                flags.append(DoubtFlag(
-                    node_id=node_id,
-                    node_text=node.text,
-                    confidence=node.confidence,
-                    reason="Contested and never accessed",
-                    severity="medium",
-                ))
+                flags.append(
+                    DoubtFlag(
+                        node_id=node_id,
+                        node_text=node.text,
+                        confidence=node.confidence,
+                        reason="Contested and never accessed",
+                        severity="medium",
+                    )
+                )
 
         # Sort by severity (high first)
         severity_order = {"high": 0, "medium": 1, "low": 2}
@@ -569,9 +577,7 @@ class NeuroplasticityEngine:
 
         # Step 1: Staleness decay
         decay_results = self.apply_staleness_decay(graph, now=now)
-        total_decay = sum(
-            r.original_confidence - r.new_confidence for r in decay_results
-        )
+        total_decay = sum(r.original_confidence - r.new_confidence for r in decay_results)
 
         # Step 2: Pathway strengthening
         # In maintenance mode, we strengthen nodes that have high access
@@ -582,9 +588,7 @@ class NeuroplasticityEngine:
                 result = self.strengthen_pathway(graph, node_id)
                 if result is not None:
                     strength_results.append(result)
-        total_boost = sum(
-            r.new_confidence - r.original_confidence for r in strength_results
-        )
+        total_boost = sum(r.new_confidence - r.original_confidence for r in strength_results)
 
         # Step 2.5: Propagate confidence changes from decay/strengthening
         if self.confidence_engine is not None:
@@ -595,7 +599,9 @@ class NeuroplasticityEngine:
                 changed_ids.add(r.node_id)
             for nid in changed_ids:
                 self.confidence_engine.propagate_confidence_update(
-                    graph, nid, max_hops=self.propagation_max_hops,
+                    graph,
+                    nid,
+                    max_hops=self.propagation_max_hops,
                 )
 
         # Step 3: Doubt flagging (on post-maintenance state)
@@ -615,8 +621,7 @@ class NeuroplasticityEngine:
         )
 
         logger.info(
-            "Maintenance complete: %d nodes examined, %d decayed, "
-            "%d strengthened, %d flagged",
+            "Maintenance complete: %d nodes examined, %d decayed, %d strengthened, %d flagged",
             report.nodes_examined,
             report.nodes_decayed,
             report.nodes_strengthened,

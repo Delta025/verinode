@@ -9,10 +9,10 @@ init lazily on first use.
 from pathlib import Path
 from typing import Optional
 
-from src.core.graph import KnowledgeGraph
 from src.core.confidence import ConfidenceEngine
-from src.core.reasoning import ReasoningEngine
+from src.core.graph import KnowledgeGraph
 from src.core.neuroplasticity import NeuroplasticityEngine
+from src.core.reasoning import ReasoningEngine
 
 
 class AppState:
@@ -50,6 +50,7 @@ class AppState:
 
         if path.suffix in (".db", ".sqlite", ".sqlite3"):
             from src.core.storage import SqliteGraph
+
             self.graph = SqliteGraph(str(path))
         else:
             self.graph = KnowledgeGraph.load(str(path))
@@ -58,6 +59,7 @@ class AppState:
     def embedding_engine(self):
         if self._embedding_engine is None:
             from src.core.embeddings import EmbeddingEngine
+
             self._embedding_engine = EmbeddingEngine()
             if len(self.graph) > 0:
                 self._embedding_engine.index_graph(self.graph)
@@ -67,8 +69,10 @@ class AppState:
     def pipeline(self):
         if self._pipeline is None:
             import os
-            from src.core.pipeline import Pipeline
+
             from src.core.fact_extraction import create_fact_extractor
+            from src.core.pipeline import Pipeline
+
             backend = os.environ.get("VERINODE_EXTRACTOR_BACKEND", "ollama")
             if backend == "ollama":
                 extractor = create_fact_extractor(backend="ollama", model=self.model)
@@ -87,7 +91,9 @@ class AppState:
     def contradiction_checker(self):
         if self._contradiction_checker is None:
             import os
+
             from src.core.llm_contradiction import create_contradiction_checker
+
             backend = os.environ.get("VERINODE_CHECKER_BACKEND", "ollama")
             # Only pass model name when using the matching backend;
             # Gemini needs its own model name (defaults to gemini-2.0-flash).
@@ -103,6 +109,7 @@ class AppState:
         if self._reranker is None:
             try:
                 from src.core.reranker import CrossEncoderReranker
+
                 self._reranker = CrossEncoderReranker()
             except ImportError:
                 self._reranker = None
@@ -112,6 +119,7 @@ class AppState:
     def verification_engine(self):
         if self._verification_engine is None:
             from src.core.verification import VerificationEngine
+
             self._verification_engine = VerificationEngine(
                 self.graph,
                 embedding_engine=self.embedding_engine,
@@ -126,6 +134,7 @@ class AppState:
     def llm_memory(self):
         if self._llm_memory is None:
             from src.core.llm_memory import LLMMemory
+
             self._llm_memory = LLMMemory(
                 self.graph,
                 embedding_engine=self.embedding_engine,
