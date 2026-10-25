@@ -4,7 +4,6 @@ Unit tests for SQLite-backed knowledge graph storage.
 No Ollama server needed — all tests use in-memory graphs and local SQLite files.
 """
 
-import json
 import os
 import sqlite3
 import sys
@@ -17,6 +16,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from src.core.graph import KnowledgeGraph
 from src.core.node import (
     Derivation,
     KnowledgeNode,
@@ -24,7 +24,6 @@ from src.core.node import (
     NodeType,
     Source,
 )
-from src.core.graph import KnowledgeGraph
 from src.core.storage import (
     SCHEMA_VERSION,
     SqliteGraph,
@@ -32,10 +31,10 @@ from src.core.storage import (
     sqlite_to_json,
 )
 
-
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
+
 
 def _tmp_db() -> str:
     """Create a temporary .db file path and return it."""
@@ -108,6 +107,7 @@ def _build_graph() -> KnowledgeGraph:
 # Schema and basic construction
 # ------------------------------------------------------------------
 
+
 class TestSchemaCreation:
     """Verify that SqliteGraph creates the expected tables."""
 
@@ -116,12 +116,7 @@ class TestSchemaCreation:
         try:
             graph = SqliteGraph(db_path)
             conn = sqlite3.connect(db_path)
-            tables = {
-                r[0]
-                for r in conn.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table'"
-                ).fetchall()
-            }
+            tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
             assert "nodes" in tables
             assert "sources" in tables
             assert "edges" in tables
@@ -160,6 +155,7 @@ class TestSchemaCreation:
 # ------------------------------------------------------------------
 # add_node + persistence
 # ------------------------------------------------------------------
+
 
 class TestAddNode:
     """Test adding nodes and verifying SQLite persistence."""
@@ -226,9 +222,7 @@ class TestAddNode:
             graph.add_node(n2)
 
             conn = sqlite3.connect(db_path)
-            row = conn.execute(
-                "SELECT predecessor_id, successor_id FROM edges"
-            ).fetchone()
+            row = conn.execute("SELECT predecessor_id, successor_id FROM edges").fetchone()
             assert row is not None
             assert row[0] == n1.id
             assert row[1] == n2.id
@@ -307,6 +301,7 @@ class TestAddNode:
 # ------------------------------------------------------------------
 # Round-trip: add → close → reopen → verify
 # ------------------------------------------------------------------
+
 
 class TestRoundTrip:
     """Test that data survives close + reopen."""
@@ -462,10 +457,7 @@ class TestRoundTrip:
         db_path = _tmp_db()
         try:
             g1 = SqliteGraph(db_path)
-            nodes = [
-                _make_node(text=f"Fact number {i}", confidence=0.5 + i * 0.1)
-                for i in range(5)
-            ]
+            nodes = [_make_node(text=f"Fact number {i}", confidence=0.5 + i * 0.1) for i in range(5)]
             for n in nodes:
                 g1.add_node(n)
             g1.close()
@@ -485,6 +477,7 @@ class TestRoundTrip:
 # update_node_confidence
 # ------------------------------------------------------------------
 
+
 class TestUpdateConfidence:
     """Test confidence updates are persisted."""
 
@@ -501,9 +494,7 @@ class TestUpdateConfidence:
 
             # In SQLite
             conn = sqlite3.connect(db_path)
-            row = conn.execute(
-                "SELECT confidence FROM nodes WHERE id = ?", (node.id,)
-            ).fetchone()
+            row = conn.execute("SELECT confidence FROM nodes WHERE id = ?", (node.id,)).fetchone()
             assert abs(row[0] - 0.9) < 1e-6
             conn.close()
             g1.close()
@@ -523,9 +514,7 @@ class TestUpdateConfidence:
 
             # Verify in SQLite
             conn = sqlite3.connect(db_path)
-            row = conn.execute(
-                "SELECT status FROM nodes WHERE id = ?", (node.id,)
-            ).fetchone()
+            row = conn.execute("SELECT status FROM nodes WHERE id = ?", (node.id,)).fetchone()
             assert row[0] == "established"
             conn.close()
             graph.close()
@@ -569,6 +558,7 @@ class TestUpdateConfidence:
 # ------------------------------------------------------------------
 # add_contradiction
 # ------------------------------------------------------------------
+
 
 class TestAddContradiction:
     """Test contradiction persistence."""
@@ -655,6 +645,7 @@ class TestAddContradiction:
 # remove_node
 # ------------------------------------------------------------------
 
+
 class TestRemoveNode:
     """Test node removal and cascade deletes."""
 
@@ -672,9 +663,7 @@ class TestRemoveNode:
 
             # In SQLite
             conn = sqlite3.connect(db_path)
-            row = conn.execute(
-                "SELECT id FROM nodes WHERE id = ?", (node.id,)
-            ).fetchone()
+            row = conn.execute("SELECT id FROM nodes WHERE id = ?", (node.id,)).fetchone()
             assert row is None
             conn.close()
             graph.close()
@@ -691,9 +680,7 @@ class TestRemoveNode:
             graph.remove_node(node_id)
 
             conn = sqlite3.connect(db_path)
-            rows = conn.execute(
-                "SELECT id FROM sources WHERE node_id = ?", (node_id,)
-            ).fetchall()
+            rows = conn.execute("SELECT id FROM sources WHERE node_id = ?", (node_id,)).fetchall()
             assert len(rows) == 0
             conn.close()
             graph.close()
@@ -711,9 +698,7 @@ class TestRemoveNode:
             graph.remove_node(node_id)
 
             conn = sqlite3.connect(db_path)
-            row = conn.execute(
-                "SELECT node_id FROM embeddings WHERE node_id = ?", (node_id,)
-            ).fetchone()
+            row = conn.execute("SELECT node_id FROM embeddings WHERE node_id = ?", (node_id,)).fetchone()
             assert row is None
             conn.close()
             graph.close()
@@ -759,6 +744,7 @@ class TestRemoveNode:
 # Changelog
 # ------------------------------------------------------------------
 
+
 class TestChangelog:
     """Test changelog retrieval."""
 
@@ -792,6 +778,7 @@ class TestChangelog:
 # ------------------------------------------------------------------
 # from_graph conversion
 # ------------------------------------------------------------------
+
 
 class TestFromGraph:
     """Test converting an in-memory KnowledgeGraph to SqliteGraph."""
@@ -854,6 +841,7 @@ class TestFromGraph:
 # ------------------------------------------------------------------
 # json_to_sqlite / sqlite_to_json
 # ------------------------------------------------------------------
+
 
 class TestConversion:
     """Test JSON ↔ SQLite round-trip conversion."""
@@ -944,6 +932,7 @@ class TestConversion:
 # Embedding persistence (public API)
 # ------------------------------------------------------------------
 
+
 class TestPersistEmbedding:
     """Test the persist_embedding() method."""
 
@@ -1001,6 +990,7 @@ class TestPersistEmbedding:
 # Large graph
 # ------------------------------------------------------------------
 
+
 class TestLargeGraph:
     """Performance check with a non-trivial number of nodes."""
 
@@ -1032,6 +1022,7 @@ class TestLargeGraph:
 # ------------------------------------------------------------------
 # KnowledgeGraph API compatibility
 # ------------------------------------------------------------------
+
 
 class TestAPICompatibility:
     """Verify SqliteGraph works with all KnowledgeGraph methods."""
@@ -1135,6 +1126,7 @@ class TestAPICompatibility:
 # Source with date
 # ------------------------------------------------------------------
 
+
 class TestSourceWithDate:
     """Verify Source date field serializes and deserializes correctly."""
 
@@ -1174,6 +1166,7 @@ class TestSourceWithDate:
 # ------------------------------------------------------------------
 # Edge cases
 # ------------------------------------------------------------------
+
 
 class TestEdgeCases:
     """Miscellaneous edge cases."""
@@ -1225,6 +1218,7 @@ class TestEdgeCases:
 # Edge labels in SQLite
 # ------------------------------------------------------------------
 
+
 class TestEdgeLabelsStorage:
     """Test edge label persistence in SQLite."""
 
@@ -1252,6 +1246,7 @@ class TestEdgeLabelsStorage:
 
             # Verify in SQLite directly
             import sqlite3
+
             conn = sqlite3.connect(db_path)
             row = conn.execute(
                 "SELECT relation_type FROM edges WHERE predecessor_id = ? AND successor_id = ?",
@@ -1268,6 +1263,7 @@ class TestEdgeLabelsStorage:
         db_path = _tmp_db()
         try:
             import sqlite3 as _sqlite3
+
             # Create a minimal v1 database with the old schema (no relation_type)
             conn = _sqlite3.connect(db_path)
             conn.execute("PRAGMA foreign_keys=ON")

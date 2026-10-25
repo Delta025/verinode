@@ -10,18 +10,19 @@ Run with: pytest tests/test_calibration_llm.py --run-calibration --run-integrati
 
 import os
 import statistics
+
 import numpy as np
 import pytest
 
-from src.core.fact_extraction import FactExtractionEngine
+from src.core.confidence import ConfidenceEngine
+from src.core.dependency_detection import DependencyDetector
 from src.core.embeddings import EmbeddingEngine
-from src.core.llm_contradiction import create_contradiction_checker
+from src.core.fact_extraction import FactExtractionEngine
 from src.core.graph import KnowledgeGraph
+from src.core.llm_contradiction import create_contradiction_checker
+from src.core.metrics import load_jsonl
 from src.core.node import Source
 from src.core.pipeline import Pipeline
-from src.core.dependency_detection import DependencyDetector
-from src.core.confidence import ConfidenceEngine
-from src.core.metrics import load_jsonl
 
 pytestmark = [pytest.mark.calibration, pytest.mark.integration]
 
@@ -37,6 +38,7 @@ def _cosine_sim(a, b):
 
 
 # ── Shared fixtures ─────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="module")
 def extractor():
@@ -78,8 +80,8 @@ def fever():
 
 # ── Extraction Accuracy Tests ──────────────────────────────────────────
 
-class TestExtractionAccuracy:
 
+class TestExtractionAccuracy:
     def test_extraction_completeness(self, extractor, arc_sentences):
         """Most ARC sentences should produce at least one fact."""
         subset = arc_sentences[:30]  # Limit for speed
@@ -94,9 +96,7 @@ class TestExtractionAccuracy:
                 pass  # Count as not produced
 
         completeness = produced / len(subset)
-        assert completeness >= 0.70, (
-            f"Only {completeness:.1%} of sentences produced facts (need >= 70%)"
-        )
+        assert completeness >= 0.70, f"Only {completeness:.1%} of sentences produced facts (need >= 70%)"
 
     def test_extraction_fidelity(self, extractor, embed, arc_sentences):
         """Extracted facts should be semantically similar to source text."""
@@ -117,9 +117,7 @@ class TestExtractionAccuracy:
 
         if fidelities:
             mean_fidelity = statistics.mean(fidelities)
-            assert mean_fidelity >= 0.30, (
-                f"Mean extraction fidelity {mean_fidelity:.3f} < 0.30"
-            )
+            assert mean_fidelity >= 0.30, f"Mean extraction fidelity {mean_fidelity:.3f} < 0.30"
 
     def test_low_hallucination_rate(self, extractor, embed, arc_sentences):
         """Few extracted facts should be very different from source text."""
@@ -144,15 +142,13 @@ class TestExtractionAccuracy:
         if total_facts > 0:
             hallucination_rate = low_fidelity / total_facts
             # Allow up to 20% hallucination (threshold is generous)
-            assert hallucination_rate <= 0.20, (
-                f"Hallucination rate {hallucination_rate:.1%} > 20%"
-            )
+            assert hallucination_rate <= 0.20, f"Hallucination rate {hallucination_rate:.1%} > 20%"
 
 
 # ── LLM Contradiction Detection Tests ─────────────────────────────────
 
-class TestLLMContradiction:
 
+class TestLLMContradiction:
     def test_detects_refutations(self, checker, fever):
         """LLM should detect at least some REFUTES pairs."""
         refutes = [r for r in fever if r["label"] == "REFUTES"][:20]
@@ -165,9 +161,7 @@ class TestLLMContradiction:
 
         detect_rate = detected / len(refutes) if refutes else 0
         # LLM should catch at least 30% of contradictions
-        assert detect_rate >= 0.30, (
-            f"Only {detect_rate:.1%} of REFUTES detected (need >= 30%)"
-        )
+        assert detect_rate >= 0.30, f"Only {detect_rate:.1%} of REFUTES detected (need >= 30%)"
 
     def test_low_false_positive_on_supports(self, checker, fever):
         """LLM should not flag most SUPPORTS pairs as contradictions."""
@@ -181,9 +175,7 @@ class TestLLMContradiction:
 
         fp_rate = false_positives / len(supports) if supports else 0
         # Allow up to 15% false positive rate
-        assert fp_rate <= 0.15, (
-            f"LLM false positive rate {fp_rate:.1%} on SUPPORTS > 15%"
-        )
+        assert fp_rate <= 0.15, f"LLM false positive rate {fp_rate:.1%} on SUPPORTS > 15%"
 
     def test_relevance_relationship_populated(self, checker, fever):
         """Detected relationships should have a valid relationship type."""
@@ -200,15 +192,13 @@ class TestLLMContradiction:
 
         if total_count > 0:
             valid_rate = valid_count / total_count
-            assert valid_rate >= 0.80, (
-                f"Only {valid_rate:.1%} of results have valid relationships"
-            )
+            assert valid_rate >= 0.80, f"Only {valid_rate:.1%} of results have valid relationships"
 
 
 # ── Pipeline Integration Tests ─────────────────────────────────────────
 
-class TestPipelineIntegration:
 
+class TestPipelineIntegration:
     def test_pipeline_ingest_produces_nodes(self, extractor, embed):
         """Pipeline should ingest text and produce graph nodes."""
         graph = KnowledgeGraph()
@@ -245,7 +235,7 @@ class TestPipelineIntegration:
 
         r1 = pipeline.ingest(text, source=source, domain="science")
         pipeline.build_index()
-        r2 = pipeline.ingest(text, source=source, domain="science")
+        pipeline.ingest(text, source=source, domain="science")
 
         # Second ingestion should mostly merge or deduplicate
         total_after = len(graph.nodes)
@@ -273,14 +263,16 @@ class TestPipelineIntegration:
         # Ingest ground truth
         pipeline.ingest(
             "The speed of light is approximately 300,000 kilometers per second.",
-            source=source, domain="physics",
+            source=source,
+            domain="physics",
         )
         pipeline.build_index()
 
         # Ingest contradiction
         r2 = pipeline.ingest(
             "The speed of light is approximately 150,000 kilometers per second.",
-            source=source, domain="physics",
+            source=source,
+            domain="physics",
         )
 
         # Should flag or reject at least something

@@ -8,8 +8,6 @@ Each test exercises the SqliteGraph with real Pipeline ingestion,
 querying, and persistence round-trips.
 """
 
-import json
-import os
 import sys
 from pathlib import Path
 
@@ -18,7 +16,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.core.graph import KnowledgeGraph
-from src.core.storage import SqliteGraph, json_to_sqlite, sqlite_to_json
+from src.core.storage import SqliteGraph, json_to_sqlite
 
 pytestmark = pytest.mark.integration
 
@@ -27,13 +25,14 @@ pytestmark = pytest.mark.integration
 # Tests
 # ------------------------------------------------------------------
 
+
 class TestSqliteGraphWithPipeline:
     """Test SqliteGraph as a drop-in replacement for KnowledgeGraph in the Pipeline."""
 
     def test_ingest_with_sqlite_graph(self, tmp_path):
         """Pipeline ingestion works with SqliteGraph as the graph backend."""
-        from src.core.pipeline import Pipeline
         from src.core.node import Source
+        from src.core.pipeline import Pipeline
 
         db_path = str(tmp_path / "test.db")
         graph = SqliteGraph(db_path)
@@ -51,9 +50,9 @@ class TestSqliteGraphWithPipeline:
 
     def test_ingest_and_query_sqlite(self, tmp_path):
         """Full ingest → query workflow using SqliteGraph."""
+        from src.core.node import Source
         from src.core.pipeline import Pipeline
         from src.core.reasoning import ReasoningEngine
-        from src.core.node import Source
 
         db_path = str(tmp_path / "test.db")
         graph = SqliteGraph(db_path)
@@ -85,8 +84,8 @@ class TestSqlitePersistenceRoundTrip:
 
     def test_close_reopen_preserves_ingested_data(self, tmp_path):
         """Ingest data, close the DB, reopen it, verify data is intact."""
-        from src.core.pipeline import Pipeline
         from src.core.node import Source
+        from src.core.pipeline import Pipeline
 
         db_path = str(tmp_path / "test.db")
 
@@ -120,8 +119,8 @@ class TestJsonSqliteConversion:
 
     def test_json_to_sqlite_with_live_data(self, tmp_path):
         """Ingest via JSON graph, convert to SQLite, verify data."""
-        from src.core.pipeline import Pipeline
         from src.core.node import Source
+        from src.core.pipeline import Pipeline
 
         json_path = str(tmp_path / "test.json")
         db_path = str(tmp_path / "test.db")
@@ -146,8 +145,8 @@ class TestJsonSqliteConversion:
 
     def test_sqlite_to_json_with_live_data(self, tmp_path):
         """Ingest via SQLite graph, export to JSON, verify data."""
-        from src.core.pipeline import Pipeline
         from src.core.node import Source
+        from src.core.pipeline import Pipeline
 
         db_path = str(tmp_path / "test.db")
         json_path = str(tmp_path / "export.json")
@@ -177,8 +176,8 @@ class TestSqliteGraphChangelog:
 
     def test_changelog_records_pipeline_adds(self, tmp_path):
         """Verify that pipeline ingestion creates changelog entries."""
-        from src.core.pipeline import Pipeline
         from src.core.node import Source
+        from src.core.pipeline import Pipeline
 
         db_path = str(tmp_path / "test.db")
         graph = SqliteGraph(db_path)

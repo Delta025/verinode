@@ -1,4 +1,4 @@
-# Engram — Research Notes
+# Verinode — Research Notes
 
 ## Core Problem: AI Vulnerability to Knowledge Corruption
 
@@ -98,9 +98,9 @@ The graph acts as a fact-checking system once it reaches critical size, if seede
 ### How Frontier LLMs Work
 Modern frontier models (GPT-4, Claude, Gemini, Llama, etc.) are transformer-based architectures with knowledge stored implicitly in billions of parameters learned during training. No single parameter corresponds to a single fact, making knowledge opaque and unauditable. Token probabilities reflect language likelihood, not factual certainty — a confidently-stated hallucination has the same probability profile as a true fact.
 
-### Where Engram Differs
+### Where Verinode Differs
 
-| Property | Frontier LLMs | Engram |
+| Property | Frontier LLMs | Verinode |
 |----------|--------------|--------|
 | Knowledge storage | Implicit in billions of weights | Explicit nodes with text, confidence, provenance |
 | Auditability | Cannot inspect why a fact is "known" | Every fact traces to sources via predecessor chains |
@@ -112,8 +112,8 @@ Modern frontier models (GPT-4, Claude, Gemini, Llama, etc.) are transformer-base
 | Scale | Billions of facts compressed into weights | Scales with storage, not computation |
 | Speed | Fast inference (single forward pass) | Slower (graph traversal, embedding search, LLM extraction) |
 
-### Where Engram Depends on LLMs
-Engram uses Ollama (local LLM) for:
+### Where Verinode Depends on LLMs
+Verinode uses Ollama (local LLM) for:
 1. **Fact extraction**: Parsing unstructured text into structured facts (FactExtractionEngine)
 2. **Contradiction detection**: Semantic comparison of fact pairs (ContradictionChecker)
 3. **3-way relevance classification**: Classifying evidence as contradicts/supports/irrelevant (VerificationEngine)
@@ -121,7 +121,7 @@ Engram uses Ollama (local LLM) for:
 The reasoning engine, confidence propagation, dependency detection, and anomaly detection are all rule-based and do not use any LLM. This hybrid approach uses the LLM's language understanding for input processing while keeping all reasoning transparent and auditable.
 
 ### Key Insight
-Engram is not trying to replace LLMs. It addresses a specific weakness: the inability to audit, verify, and track confidence in knowledge. A mature Engram system complements an LLM by providing a verified knowledge substrate that the LLM queries for factual answers — similar to RAG but with confidence tracking, provenance, contradiction detection, and anomaly detection built in.
+Verinode is not trying to replace LLMs. It addresses a specific weakness: the inability to audit, verify, and track confidence in knowledge. A mature Verinode system complements an LLM by providing a verified knowledge substrate that the LLM queries for factual answers — similar to RAG but with confidence tracking, provenance, contradiction detection, and anomaly detection built in.
 
 ---
 
@@ -144,11 +144,11 @@ Engram is not trying to replace LLMs. It addresses a specific weakness: the inab
 ### AI Approaches
 - **Knowledge Graph Embeddings**: TransE, RotatE, ComplEx — represent graphs as vectors but lack explicit confidence.
 - **Graph Neural Networks**: Message passing on graphs — graph is usually architecture, not knowledge.
-- **Neurosymbolic AI**: Combines neural + symbolic. Engram pushes more toward the explicit symbolic side.
-- **RAG** (Retrieval-Augmented Generation): External knowledge for LLMs. Engram = RAG + explicit graph + confidence + provenance + contradiction detection.
+- **Neurosymbolic AI**: Combines neural + symbolic. Verinode pushes more toward the explicit symbolic side.
+- **RAG** (Retrieval-Augmented Generation): External knowledge for LLMs. Verinode = RAG + explicit graph + confidence + provenance + contradiction detection.
 
-### How Engram Adds Value Over Existing Approaches
-Most GraphRAG and KG-RAG systems treat the knowledge graph as a static retrieval source. They do not model uncertainty, do not track confidence changes over time, and do not handle contradictions within the graph. Engram addresses these gaps:
+### How Verinode Adds Value Over Existing Approaches
+Most GraphRAG and KG-RAG systems treat the knowledge graph as a static retrieval source. They do not model uncertainty, do not track confidence changes over time, and do not handle contradictions within the graph. Verinode addresses these gaps:
 - **Explicit confidence tracking** on every node models uncertainty rather than treating all knowledge as equal
 - **3-way relevance classification** (contradicts/supports/irrelevant) handles conflicting evidence
 - **Retraction cascade** propagates the effects of disbelieved facts through dependent knowledge
@@ -310,16 +310,16 @@ These are inherent limitations of any automated knowledge system and argue for h
 
 ### Vulnerability Resistance Benchmark (Feb 2026)
 
-A 75-test benchmark comparing bare qwen3:14b vs the same model augmented with Engram across 5 vulnerability categories demonstrates measurable improvements in adversarial scenarios:
+A 75-test benchmark comparing bare qwen3:14b vs the same model augmented with Verinode across 5 vulnerability categories demonstrates measurable improvements in adversarial scenarios:
 
-| Category | Without Engram | With Engram | Delta |
+| Category | Without Verinode | With Verinode | Delta |
 |---|:---:|:---:|:---:|
 | Poisoned Context Resistance (15) | 20% | **100%** | **+80pp** |
 | Subtle Numerical Errors (15) | 20% | **80%** | **+60pp** |
 | Factual Accuracy (15) | 100% | 100% | +0pp |
 | False Claim Detection (20) | 100% | 95% | -5pp |
 
-The largest impact is in adversarial scenarios: the bare LLM blindly follows injected false context 80% of the time, while Engram's verify + recall pipeline provides 100% resistance. Subtle numerical errors (values off by 0.1-17%) are almost invisible to the bare LLM (20% detection) but caught 80% of the time with Engram's graph-backed verification.
+The largest impact is in adversarial scenarios: the bare LLM blindly follows injected false context 80% of the time, while Verinode's verify + recall pipeline provides 100% resistance. Subtle numerical errors (values off by 0.1-17%) are almost invisible to the bare LLM (20% detection) but caught 80% of the time with Verinode's graph-backed verification.
 
 Categories A and B show no improvement because the test facts are well-known science knowledge the LLM was extensively trained on. Testing on specialized domain knowledge (legal frameworks, proprietary documentation) where the LLM has weaker coverage is planned for future work.
 
@@ -389,10 +389,10 @@ Full methodology, per-case breakdowns, and analysis: [benchmarks.md](benchmarks.
 
 ## Future Research Directions
 
-For detailed implementation plans, see `ROADMAP.md`. Below are the research foundations.
+Planned directions are summarised in [ROADMAP.md](../ROADMAP.md). Below are the research foundations.
 
 ### Neuroplasticity-Inspired Graph Dynamics
-Biological neural networks update locally, strengthen frequently-used pathways, and let unused connections decay. Engram's existing `access_count` and `last_validated` fields provide the hooks for staleness decay and pathway strengthening.
+Biological neural networks update locally, strengthen frequently-used pathways, and let unused connections decay. Verinode's existing `access_count` and `last_validated` fields provide the hooks for staleness decay and pathway strengthening.
 
 ### Active Inference and the "Epistemic Brain"
 Transform confidence propagation into precision-weighted belief tracking. The `detect_anomalies` function is already a prediction error calculator — the AIF adaptation would add a "Surprise" (Free Energy) loop during ingestion and curiosity-driven knowledge acquisition targeting high-uncertainty nodes.
@@ -404,10 +404,10 @@ Can the graph's accumulated structured knowledge build extraction capabilities w
 Systematic study of attack vectors: coordinated false information campaigns, subtle numerical errors, internally-consistent false knowledge systems, source quality gaming. Defense strategies include cross-validation against multiple independent knowledge bases.
 
 ### Multi-Graph Federation
-Multiple Engram instances maintaining independent knowledge graphs that cross-validate through sub-graph export/import. Enables decentralized verification — a claim corroborated by multiple independent graphs has stronger epistemic standing than one verified by a single instance.
+Multiple Verinode instances maintaining independent knowledge graphs that cross-validate through sub-graph export/import. Enables decentralized verification — a claim corroborated by multiple independent graphs has stronger epistemic standing than one verified by a single instance.
 
 ---
 
 ## Notes
 
-The problem Engram addresses is fundamentally about **data integrity** — making AI knowledge explicit, auditable, and verifiable in an age where data sources can't be blindly trusted. This connects to cybersecurity principles: anomaly detection (intrusion detection), provenance tracking (chain of custody), multiple validation layers (defense in depth), and confidence scoring (trust but verify).
+The problem Verinode addresses is fundamentally about **data integrity** — making AI knowledge explicit, auditable, and verifiable in an age where data sources can't be blindly trusted. This connects to cybersecurity principles: anomaly detection (intrusion detection), provenance tracking (chain of custody), multiple validation layers (defense in depth), and confidence scoring (trust but verify).

@@ -4,9 +4,12 @@ from fastapi import APIRouter, HTTPException
 
 import src.api.state as state_mod
 from src.api.schemas import (
-    QueryRequest, QueryResponse,
-    HypothesisRequest, HypothesisResponse,
-    ReasoningChainResponse, ReasoningStepResponse,
+    HypothesisRequest,
+    HypothesisResponse,
+    QueryRequest,
+    QueryResponse,
+    ReasoningChainResponse,
+    ReasoningStepResponse,
 )
 
 router = APIRouter(tags=["query"])
@@ -16,12 +19,14 @@ def _chain_to_response(chain) -> ReasoningChainResponse:
     """Convert a ReasoningChain to response model."""
     steps = []
     for step in chain.steps:
-        steps.append(ReasoningStepResponse(
-            node_id=step.node_id,
-            text=step.node_text,
-            confidence=step.confidence,
-            step_type=step.step_type,
-        ))
+        steps.append(
+            ReasoningStepResponse(
+                node_id=step.node_id,
+                text=step.node_text,
+                confidence=step.confidence,
+                step_type=step.step_type,
+            )
+        )
     return ReasoningChainResponse(
         steps=steps,
         overall_confidence=chain.conclusion_confidence,

@@ -14,11 +14,11 @@ Uses Ollama's JSON mode for grammar-constrained structured output,
 following the same patterns as fact_extraction.py.
 """
 
-from dataclasses import dataclass
-from typing import Dict, Optional, List, Tuple
 import json
 import logging
 import re
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +33,10 @@ def _get_ollama():
     if _ollama is None:
         try:
             import ollama
+
             _ollama = ollama
         except ImportError:
-            raise ImportError(
-                "ollama is required for LLM contradiction detection. "
-                "Install with: pip install ollama"
-            )
+            raise ImportError("ollama is required for LLM contradiction detection. Install with: pip install ollama")
     return _ollama
 
 
@@ -48,11 +46,11 @@ def _get_genai():
     if _genai is None:
         try:
             from google import genai
+
             _genai = genai
         except ImportError:
             raise ImportError(
-                "google-genai is required for Gemini contradiction detection. "
-                "Install with: pip install google-genai"
+                "google-genai is required for Gemini contradiction detection. Install with: pip install google-genai"
             )
     return _genai
 
@@ -61,13 +59,15 @@ def _get_genai():
 # Data structures
 # ------------------------------------------------------------------
 
+
 @dataclass
 class RelevanceResult:
     """Result of a 3-way relevance classification (contradicts/supports/irrelevant)."""
+
     claim: str
     knowledge: str
-    relationship: str           # "contradicts", "supports", "irrelevant"
-    confidence: float           # 0.0-1.0
+    relationship: str  # "contradicts", "supports", "irrelevant"
+    confidence: float  # 0.0-1.0
     explanation: str
     raw_response: str = ""
 
@@ -152,6 +152,7 @@ Respond with JSON only.\
 # Engine
 # ------------------------------------------------------------------
 
+
 class ContradictionChecker:
     """
     LLM-assisted 3-way relevance classification using Ollama.
@@ -232,9 +233,7 @@ class ContradictionChecker:
             logger.debug("check_relevance cache hit")
             return cached
 
-        user_msg = RELEVANCE_USER_TEMPLATE.format(
-            claim=claim, knowledge=knowledge
-        )
+        user_msg = RELEVANCE_USER_TEMPLATE.format(claim=claim, knowledge=knowledge)
 
         try:
             response = self._client.chat(
@@ -297,10 +296,7 @@ class ContradictionChecker:
         results: List[Optional[RelevanceResult]] = [None] * len(pairs)
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_idx = {
-                executor.submit(self.check_relevance, c, k): i
-                for i, (c, k) in enumerate(pairs)
-            }
+            future_to_idx = {executor.submit(self.check_relevance, c, k): i for i, (c, k) in enumerate(pairs)}
             for future in as_completed(future_to_idx):
                 idx = future_to_idx[future]
                 try:
@@ -309,8 +305,10 @@ class ContradictionChecker:
                     logger.warning("Batch relevance pair %d failed: %s", idx, e)
                     c, k = pairs[idx]
                     results[idx] = RelevanceResult(
-                        claim=c, knowledge=k,
-                        relationship="irrelevant", confidence=0.0,
+                        claim=c,
+                        knowledge=k,
+                        relationship="irrelevant",
+                        confidence=0.0,
                         explanation=f"Batch check failed: {e}",
                     )
 
@@ -319,8 +317,10 @@ class ContradictionChecker:
             if r is None:
                 c, k = pairs[i]
                 results[i] = RelevanceResult(
-                    claim=c, knowledge=k,
-                    relationship="irrelevant", confidence=0.0,
+                    claim=c,
+                    knowledge=k,
+                    relationship="irrelevant",
+                    confidence=0.0,
                     explanation="Result was unexpectedly None",
                 )
 
@@ -382,6 +382,7 @@ class ContradictionChecker:
 # Gemini backend
 # ------------------------------------------------------------------
 
+
 class GeminiContradictionChecker:
     """
     LLM-assisted 3-way relevance classification using Google's Gemini API.
@@ -392,14 +393,14 @@ class GeminiContradictionChecker:
 
     Requires:
         pip install google-genai
-        Set ENGRAM_GEMINI_API_KEY environment variable.
+        Set VERINODE_GEMINI_API_KEY environment variable.
 
     Usage:
         checker = GeminiContradictionChecker(api_key="...")
         result = checker.check_relevance("Claim A", "Knowledge B")
     """
 
-    DEFAULT_MODEL = "gemini-2.0-flash"
+    DEFAULT_MODEL = "gemini-3.8-flash"
 
     def __init__(
         self,
@@ -413,22 +414,23 @@ class GeminiContradictionChecker:
 
         Args:
             api_key: Google Gemini API key.  Falls back to
-                ENGRAM_GEMINI_API_KEY environment variable.
-            model: Gemini model name.  Defaults to DEFAULT_MODEL.
+                VERINODE_GEMINI_API_KEY environment variable.
+            model: Gemini model name.  Defaults to $VERINODE_GEMINI_MODEL,
+                   then DEFAULT_MODEL.
             temperature: Sampling temperature (0 = deterministic).
             rate_limiter: Optional :class:`GeminiRateLimiter` instance
                 for shared rate limiting.
         """
         import os
 
-        self.model = model or self.DEFAULT_MODEL
+        self.model = model or os.environ.get("VERINODE_GEMINI_MODEL") or self.DEFAULT_MODEL
         self.temperature = temperature
         self.rate_limiter = rate_limiter
 
-        resolved_key = api_key or os.environ.get("ENGRAM_GEMINI_API_KEY")
+        resolved_key = api_key or os.environ.get("VERINODE_GEMINI_API_KEY")
         if not resolved_key:
             raise ValueError(
-                "Gemini API key required. Set ENGRAM_GEMINI_API_KEY "
+                "Gemini API key required. Set VERINODE_GEMINI_API_KEY "
                 "environment variable or pass api_key= to constructor."
             )
 
@@ -455,9 +457,7 @@ class GeminiContradictionChecker:
         if cached is not None:
             return cached
 
-        user_msg = RELEVANCE_USER_TEMPLATE.format(
-            claim=claim, knowledge=knowledge
-        )
+        user_msg = RELEVANCE_USER_TEMPLATE.format(claim=claim, knowledge=knowledge)
         prompt_text = RELEVANCE_SYSTEM_PROMPT + "\n\n" + user_msg
 
         max_attempts = (self.rate_limiter.max_retries + 1) if self.rate_limiter else 1
@@ -466,9 +466,7 @@ class GeminiContradictionChecker:
         for attempt in range(max_attempts):
             if self.rate_limiter:
                 if not self.rate_limiter.wait_for_slot():
-                    raise DailyLimitReached(
-                        "Gemini daily budget exhausted during relevance check"
-                    )
+                    raise DailyLimitReached("Gemini daily budget exhausted during relevance check")
 
             try:
                 response = self._client.models.generate_content(
@@ -491,15 +489,18 @@ class GeminiContradictionChecker:
                         continue
                 logger.warning("Gemini relevance check failed: %s", e)
                 return RelevanceResult(
-                    claim=claim, knowledge=knowledge,
-                    relationship="irrelevant", confidence=0.0,
+                    claim=claim,
+                    knowledge=knowledge,
+                    relationship="irrelevant",
+                    confidence=0.0,
                     explanation=f"Gemini call failed: {e}",
                 )
 
         parsed = ContradictionChecker._parse_relevance_response(raw_text)
 
         result = RelevanceResult(
-            claim=claim, knowledge=knowledge,
+            claim=claim,
+            knowledge=knowledge,
             relationship=parsed["relationship"],
             confidence=parsed["confidence"],
             explanation=parsed["explanation"],
@@ -534,6 +535,7 @@ class GeminiContradictionChecker:
 # Factory
 # ------------------------------------------------------------------
 
+
 def create_contradiction_checker(
     model: Optional[str] = None,
     host: Optional[str] = None,
@@ -552,8 +554,8 @@ def create_contradiction_checker(
         model: Model name (Ollama model or Gemini model).
         host: Ollama server URL (Ollama backend only).
         backend: "ollama" (default) or "gemini".  Falls back to
-            ENGRAM_CHECKER_BACKEND environment variable.
-        gemini_api_key: Gemini API key (overrides ENGRAM_GEMINI_API_KEY
+            VERINODE_CHECKER_BACKEND environment variable.
+        gemini_api_key: Gemini API key (overrides VERINODE_GEMINI_API_KEY
             environment variable).
         rate_limiter: Optional :class:`GeminiRateLimiter` instance
             for shared rate limiting (Gemini backend only).
@@ -564,10 +566,7 @@ def create_contradiction_checker(
     """
     import os
 
-    resolved_backend = (
-        backend
-        or os.environ.get("ENGRAM_CHECKER_BACKEND", "ollama")
-    ).lower().strip()
+    resolved_backend = (backend or os.environ.get("VERINODE_CHECKER_BACKEND", "ollama")).lower().strip()
 
     if resolved_backend == "gemini":
         try:
@@ -577,9 +576,7 @@ def create_contradiction_checker(
                 rate_limiter=rate_limiter,
             )
         except Exception as e:
-            logger.info(
-                "Gemini not available; LLM contradiction detection disabled: %s", e
-            )
+            logger.info("Gemini not available; LLM contradiction detection disabled: %s", e)
             return None
     else:
         try:

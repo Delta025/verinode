@@ -4,7 +4,7 @@ Web content loader and text chunker for knowledge graph ingestion.
 Fetches URLs, extracts article text using trafilatura, and splits
 into pipeline-ready chunks that fit within the LLM context window.
 
-Dependencies (in requirements.txt):
+Dependencies (declared in pyproject.toml):
     trafilatura>=1.6.0
     requests>=2.28.0
 """
@@ -12,7 +12,7 @@ Dependencies (in requirements.txt):
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +26,10 @@ def _get_trafilatura():
     if _trafilatura is None:
         try:
             import trafilatura
+
             _trafilatura = trafilatura
         except ImportError:
-            raise ImportError(
-                "trafilatura is required for web content loading. "
-                "Install with: pip install trafilatura"
-            )
+            raise ImportError("trafilatura is required for web content loading. Install with: pip install trafilatura")
     return _trafilatura
 
 
@@ -40,12 +38,10 @@ def _get_requests():
     if _requests is None:
         try:
             import requests
+
             _requests = requests
         except ImportError:
-            raise ImportError(
-                "requests is required for web content loading. "
-                "Install with: pip install requests"
-            )
+            raise ImportError("requests is required for web content loading. Install with: pip install requests")
     return _requests
 
 
@@ -53,9 +49,11 @@ def _get_requests():
 # Data structures
 # ------------------------------------------------------------------
 
+
 @dataclass
 class LoadedContent:
     """Result of fetching and extracting text from a URL."""
+
     url: str
     title: str = ""
     author: str = ""
@@ -69,6 +67,7 @@ class LoadedContent:
 # ------------------------------------------------------------------
 # Public API
 # ------------------------------------------------------------------
+
 
 def fetch_and_extract(url: str, timeout: int = 30) -> LoadedContent:
     """
@@ -91,7 +90,7 @@ def fetch_and_extract(url: str, timeout: int = 30) -> LoadedContent:
         resp = requests.get(
             url,
             timeout=timeout,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; EngramAI/1.0)"},
+            headers={"User-Agent": "Mozilla/5.0 (compatible; Verinode/1.0)"},
         )
         resp.raise_for_status()
         html = resp.text
@@ -208,6 +207,7 @@ def chunk_text(
 # ------------------------------------------------------------------
 # Internal helpers
 # ------------------------------------------------------------------
+
 
 def _split_sentences(text: str) -> List[str]:
     """Simple sentence splitter using regex."""

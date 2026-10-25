@@ -3,14 +3,14 @@ requires = ["setuptools>=68.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "engram-ai"
+name = "verinode"
 version = "0.1.0"
-description = "Knowledge graph with confidence tracking, provenance, and truth verification"
+description = "Knowledge graph that verifies claims against sourced, confidence-scored facts"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
-    { name = "Delta025" },
+    { name = "Simon Lesperance" },
 ]
 keywords = ["knowledge-graph", "ai", "verification", "confidence", "provenance"]
 classifiers = [
@@ -48,11 +48,11 @@ dev = [
 benchmark = ["optuna>=3.0.0"]
 
 [project.scripts]
-engram = "src.cli.main:cli"
-engram-server = "src.api.server:main"
+verinode = "src.cli.main:cli"
+verinode-server = "src.api.server:main"
 
 [project.urls]
-Repository = "https://github.com/Delta025/Knowledge-Graph-AI"
+Repository = "https://github.com/Delta025/verinode"
 
 [tool.setuptools.packages.find]
 include = ["src*"]
@@ -71,3 +71,8 @@ line-length = 120
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# sys.path setup must run before project imports
+"src/cli/state.py" = ["E402"]
+"tests/*" = ["E402"]

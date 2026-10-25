@@ -18,24 +18,24 @@ Run with:  python -m pytest tests/test_fact_extraction.py -v
 Or:        python tests/test_fact_extraction.py
 """
 
+import json
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-import json
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from core.node import KnowledgeNode, NodeType, Source
 from core.fact_extraction import (
-    FactExtractionEngine,
     ExtractedFact,
     ExtractionResult,
+    FactExtractionEngine,
 )
-
+from core.node import KnowledgeNode, NodeType, Source
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _mock_response(json_text: str):
     """Create a mock Ollama chat response."""
@@ -45,32 +45,34 @@ def _mock_response(json_text: str):
     return response
 
 
-SAMPLE_RESPONSE = json.dumps([
-    {
-        "text": "Water is composed of hydrogen and oxygen",
-        "fact_type": "fact",
-        "confidence": 0.95,
-        "domain": "chemistry",
-        "related_facts": [],
-        "source_quote": "Water is H2O"
-    },
-    {
-        "text": "Water boils at 100 degrees Celsius at sea level",
-        "fact_type": "observation",
-        "confidence": 0.9,
-        "domain": "chemistry",
-        "related_facts": [0],
-        "source_quote": "boils at 100C"
-    },
-    {
-        "text": "The boiling point of water decreases at higher altitudes",
-        "fact_type": "inference",
-        "confidence": 0.85,
-        "domain": "chemistry",
-        "related_facts": [1],
-        "source_quote": "altitude affects boiling"
-    }
-])
+SAMPLE_RESPONSE = json.dumps(
+    [
+        {
+            "text": "Water is composed of hydrogen and oxygen",
+            "fact_type": "fact",
+            "confidence": 0.95,
+            "domain": "chemistry",
+            "related_facts": [],
+            "source_quote": "Water is H2O",
+        },
+        {
+            "text": "Water boils at 100 degrees Celsius at sea level",
+            "fact_type": "observation",
+            "confidence": 0.9,
+            "domain": "chemistry",
+            "related_facts": [0],
+            "source_quote": "boils at 100C",
+        },
+        {
+            "text": "The boiling point of water decreases at higher altitudes",
+            "fact_type": "inference",
+            "confidence": 0.85,
+            "domain": "chemistry",
+            "related_facts": [1],
+            "source_quote": "altitude affects boiling",
+        },
+    ]
+)
 
 
 def _make_engine():
@@ -89,6 +91,7 @@ def _make_engine():
 # ---------------------------------------------------------------------------
 # Tests: parsing
 # ---------------------------------------------------------------------------
+
 
 def test_parse_valid_json():
     """Valid JSON array is parsed into ExtractedFact objects."""
@@ -114,14 +117,16 @@ def test_parse_code_fenced_json():
 def test_parse_single_object():
     """A single JSON object (not array) is wrapped automatically."""
     engine = _make_engine()
-    single = json.dumps({
-        "text": "The sky is blue",
-        "fact_type": "observation",
-        "confidence": 0.8,
-        "domain": "general",
-        "related_facts": [],
-        "source_quote": "sky is blue"
-    })
+    single = json.dumps(
+        {
+            "text": "The sky is blue",
+            "fact_type": "observation",
+            "confidence": 0.8,
+            "domain": "general",
+            "related_facts": [],
+            "source_quote": "sky is blue",
+        }
+    )
     facts = engine._parse_response(single)
     assert len(facts) == 1
     assert facts[0].text == "The sky is blue"
@@ -139,11 +144,9 @@ def test_parse_malformed_json():
 def test_parse_empty_text_skipped():
     """Items with empty text are skipped."""
     engine = _make_engine()
-    data = json.dumps([
-        {"text": "", "confidence": 0.9},
-        {"text": "  ", "confidence": 0.9},
-        {"text": "Valid fact", "confidence": 0.8}
-    ])
+    data = json.dumps(
+        [{"text": "", "confidence": 0.9}, {"text": "  ", "confidence": 0.9}, {"text": "Valid fact", "confidence": 0.8}]
+    )
     facts = engine._parse_response(data)
     assert len(facts) == 1
     assert facts[0].text == "Valid fact"
@@ -153,10 +156,12 @@ def test_parse_empty_text_skipped():
 def test_confidence_clamping():
     """Confidence values outside [0, 1] are clamped."""
     engine = _make_engine()
-    data = json.dumps([
-        {"text": "Over-confident", "confidence": 1.5},
-        {"text": "Under-confident", "confidence": -0.3},
-    ])
+    data = json.dumps(
+        [
+            {"text": "Over-confident", "confidence": 1.5},
+            {"text": "Under-confident", "confidence": -0.3},
+        ]
+    )
     facts = engine._parse_response(data)
     assert facts[0].confidence == 1.0
     assert facts[1].confidence == 0.0
@@ -175,12 +180,14 @@ def test_default_domain_from_hint():
 def test_parse_dict_wrapper_facts_key():
     """Ollama JSON mode may return {"facts": [...]} — unwrap correctly."""
     engine = _make_engine()
-    wrapped = json.dumps({
-        "facts": [
-            {"text": "Iron is a metal", "fact_type": "fact", "confidence": 0.95},
-            {"text": "Iron rusts when exposed to moisture", "fact_type": "observation", "confidence": 0.9}
-        ]
-    })
+    wrapped = json.dumps(
+        {
+            "facts": [
+                {"text": "Iron is a metal", "fact_type": "fact", "confidence": 0.95},
+                {"text": "Iron rusts when exposed to moisture", "fact_type": "observation", "confidence": 0.9},
+            ]
+        }
+    )
     facts = engine._parse_response(wrapped)
     assert len(facts) == 2
     assert facts[0].text == "Iron is a metal"
@@ -191,11 +198,7 @@ def test_parse_dict_wrapper_facts_key():
 def test_parse_dict_wrapper_results_key():
     """Ollama may also return {"results": [...]} — unwrap correctly."""
     engine = _make_engine()
-    wrapped = json.dumps({
-        "results": [
-            {"text": "The sun is a star", "confidence": 0.99}
-        ]
-    })
+    wrapped = json.dumps({"results": [{"text": "The sun is a star", "confidence": 0.99}]})
     facts = engine._parse_response(wrapped)
     assert len(facts) == 1
     assert facts[0].text == "The sun is a star"
@@ -205,11 +208,7 @@ def test_parse_dict_wrapper_results_key():
 def test_parse_dict_unknown_key_treated_as_single_fact():
     """A dict without known wrapper keys is treated as a single fact."""
     engine = _make_engine()
-    single = json.dumps({
-        "text": "Gravity pulls objects toward Earth",
-        "fact_type": "fact",
-        "confidence": 0.95
-    })
+    single = json.dumps({"text": "Gravity pulls objects toward Earth", "fact_type": "fact", "confidence": 0.95})
     facts = engine._parse_response(single)
     assert len(facts) == 1
     assert facts[0].text == "Gravity pulls objects toward Earth"
@@ -219,6 +218,7 @@ def test_parse_dict_unknown_key_treated_as_single_fact():
 # ---------------------------------------------------------------------------
 # Tests: node conversion
 # ---------------------------------------------------------------------------
+
 
 def test_facts_to_nodes_basic():
     """facts_to_nodes creates KnowledgeNode objects with correct attributes."""
@@ -336,6 +336,7 @@ def test_out_of_range_reference_ignored():
 # Tests: end-to-end extract (mocked Ollama)
 # ---------------------------------------------------------------------------
 
+
 def test_extract_end_to_end():
     """Full extract() call with mocked Ollama returns ExtractionResult."""
     engine = _make_engine()
@@ -403,8 +404,9 @@ def test_extract_passes_json_format():
     engine.extract("Test text")
 
     call_kwargs = engine._client.chat.call_args
-    assert call_kwargs.kwargs.get("format") == "json" or \
-           (len(call_kwargs.args) == 0 and call_kwargs[1].get("format") == "json")
+    assert call_kwargs.kwargs.get("format") == "json" or (
+        len(call_kwargs.args) == 0 and call_kwargs[1].get("format") == "json"
+    )
     print("  extract_passes_json_format passed")
 
 
@@ -427,18 +429,20 @@ def test_extract_passes_temperature_and_ctx():
 def test_extract_dict_wrapper_end_to_end():
     """Full extract with Ollama returning {"facts": [...]} dict wrapper."""
     engine = _make_engine()
-    wrapped_response = json.dumps({
-        "facts": [
-            {
-                "text": "The Earth orbits the Sun",
-                "fact_type": "fact",
-                "confidence": 0.99,
-                "domain": "astronomy",
-                "related_facts": [],
-                "source_quote": "Earth orbits Sun"
-            }
-        ]
-    })
+    wrapped_response = json.dumps(
+        {
+            "facts": [
+                {
+                    "text": "The Earth orbits the Sun",
+                    "fact_type": "fact",
+                    "confidence": 0.99,
+                    "domain": "astronomy",
+                    "related_facts": [],
+                    "source_quote": "Earth orbits Sun",
+                }
+            ]
+        }
+    )
     engine._client.chat.return_value = _mock_response(wrapped_response)
 
     result = engine.extract("The Earth orbits the Sun.")
@@ -451,9 +455,11 @@ def test_extract_dict_wrapper_end_to_end():
 # Tests: _safe_float helper
 # ---------------------------------------------------------------------------
 
+
 def test_safe_float_valid():
     """_safe_float converts valid numeric values."""
     from core.fact_extraction import _safe_float
+
     assert _safe_float(0.85) == 0.85
     assert _safe_float("0.7") == 0.7
     assert _safe_float(1) == 1.0
@@ -462,6 +468,7 @@ def test_safe_float_valid():
 def test_safe_float_invalid():
     """_safe_float returns default for invalid values."""
     from core.fact_extraction import _safe_float
+
     assert _safe_float("not-a-number") == 0.5
     assert _safe_float(None) == 0.5
     assert _safe_float("high", 0.3) == 0.3
@@ -470,16 +477,18 @@ def test_safe_float_invalid():
 def test_parse_response_with_string_confidence():
     """Confidence as string in LLM response doesn't crash."""
     engine = _make_engine()
-    response_json = json.dumps([
-        {
-            "text": "Test fact with string confidence",
-            "fact_type": "fact",
-            "confidence": "not_a_number",
-            "domain": "general",
-            "related_facts": [],
-            "source_quote": "test"
-        }
-    ])
+    response_json = json.dumps(
+        [
+            {
+                "text": "Test fact with string confidence",
+                "fact_type": "fact",
+                "confidence": "not_a_number",
+                "domain": "general",
+                "related_facts": [],
+                "source_quote": "test",
+            }
+        ]
+    )
     engine._client.chat.return_value = _mock_response(response_json)
     result = engine.extract("Test text")
     assert len(result.facts) == 1
@@ -490,6 +499,7 @@ def test_parse_response_with_string_confidence():
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
+
 
 def run_all_tests():
     print("\nRunning fact extraction tests...\n")

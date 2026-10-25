@@ -9,14 +9,14 @@ No external dependencies — uses only Python standard library.
 """
 
 import json
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
-
 
 # ---------------------------------------------------------------------------
 # Binary classification metrics
 # ---------------------------------------------------------------------------
+
 
 def precision(tp: int, fp: int) -> float:
     """Precision = TP / (TP + FP). Returns 0.0 when denominator is zero."""
@@ -45,6 +45,7 @@ def accuracy(correct: int, total: int) -> float:
 # Confusion matrix
 # ---------------------------------------------------------------------------
 
+
 def confusion_matrix(predictions: list, actuals: list) -> dict:
     """
     Binary confusion matrix.
@@ -66,10 +67,7 @@ def confusion_matrix(predictions: list, actuals: list) -> dict:
         If predictions and actuals have different lengths.
     """
     if len(predictions) != len(actuals):
-        raise ValueError(
-            f"predictions ({len(predictions)}) and actuals ({len(actuals)}) "
-            f"must have the same length"
-        )
+        raise ValueError(f"predictions ({len(predictions)}) and actuals ({len(actuals)}) must have the same length")
     tp = fp = tn = fn = 0
     for pred, actual in zip(predictions, actuals):
         if pred and actual:
@@ -86,6 +84,7 @@ def confusion_matrix(predictions: list, actuals: list) -> dict:
 # ---------------------------------------------------------------------------
 # Multi-class classification report
 # ---------------------------------------------------------------------------
+
 
 def classification_report(
     predictions: list,
@@ -120,10 +119,7 @@ def classification_report(
         }
     """
     if len(predictions) != len(actuals):
-        raise ValueError(
-            f"predictions ({len(predictions)}) and actuals ({len(actuals)}) "
-            f"must have the same length"
-        )
+        raise ValueError(f"predictions ({len(predictions)}) and actuals ({len(actuals)}) must have the same length")
 
     if labels is None:
         labels = sorted(set(predictions) | set(actuals))
@@ -174,6 +170,7 @@ def classification_report(
 # Threshold sweep helper
 # ---------------------------------------------------------------------------
 
+
 def threshold_sweep(
     scores: list[float],
     actuals: list[bool],
@@ -205,13 +202,15 @@ def threshold_sweep(
         p = precision(cm["tp"], cm["fp"])
         r = recall(cm["tp"], cm["fn"])
         f = f1_score(p, r)
-        results.append({
-            "threshold": thresh,
-            "precision": p,
-            "recall": r,
-            "f1": f,
-            **cm,
-        })
+        results.append(
+            {
+                "threshold": thresh,
+                "precision": p,
+                "recall": r,
+                "f1": f,
+                **cm,
+            }
+        )
     return results
 
 
@@ -219,9 +218,11 @@ def threshold_sweep(
 # BenchmarkResult — structured benchmark output
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class BenchmarkResult:
     """Structured output from a calibration benchmark run."""
+
     name: str
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     metrics: dict[str, Any] = field(default_factory=dict)
@@ -256,6 +257,7 @@ def load_report(path: str) -> BenchmarkResult:
 # ---------------------------------------------------------------------------
 # JSONL dataset loader
 # ---------------------------------------------------------------------------
+
 
 def load_jsonl(path: str) -> list[dict]:
     """Load a JSONL file (one JSON object per line)."""

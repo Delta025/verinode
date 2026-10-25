@@ -21,9 +21,10 @@ This module provides:
   returns re-ranked candidates with updated scores.
 """
 
-from dataclasses import dataclass
-from typing import List, Dict, Any, Optional, Tuple
 import logging
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ def _get_cross_encoder():
     if _cross_encoder_cls is None:
         try:
             from sentence_transformers import CrossEncoder
+
             _cross_encoder_cls = CrossEncoder
         except ImportError:
             raise ImportError(
@@ -50,6 +52,7 @@ def _get_cross_encoder():
 @dataclass
 class RerankResult:
     """Result of re-ranking a single candidate."""
+
     node_id: str
     original_score: float
     rerank_score: float
@@ -120,9 +123,7 @@ class CrossEncoderReranker:
             logger.info("Loaded cross-encoder model: %s", self.model_name)
         return self._model
 
-    def score_pairs(
-        self, pairs: List[Tuple[str, str]]
-    ) -> List[float]:
+    def score_pairs(self, pairs: List[Tuple[str, str]]) -> List[float]:
         """
         Score a list of (query, candidate_text) pairs.
 
@@ -137,12 +138,10 @@ class CrossEncoderReranker:
         if not pairs:
             return []
 
-        scores = self.model.predict(
-            pairs, batch_size=self.batch_size, show_progress_bar=False
-        )
+        scores = self.model.predict(pairs, batch_size=self.batch_size, show_progress_bar=False)
 
         # Ensure we return a plain list of floats
-        if hasattr(scores, 'tolist'):
+        if hasattr(scores, "tolist"):
             scores = scores.tolist()
 
         return [float(s) for s in scores]
@@ -235,16 +234,15 @@ class CrossEncoderReranker:
             rerank_score = normalized_scores[i]
 
             # Combined score: weighted average
-            combined = (
-                self.weight_original * original_score
-                + self.weight_rerank * rerank_score
-            )
+            combined = self.weight_original * original_score + self.weight_rerank * rerank_score
 
             # Apply minimum score filter
             if self.min_rerank_score is not None and rerank_score < self.min_rerank_score:
                 logger.debug(
                     "Dropped candidate %s: rerank_score=%.3f < min=%.3f",
-                    cand["node_id"], rerank_score, self.min_rerank_score,
+                    cand["node_id"],
+                    rerank_score,
+                    self.min_rerank_score,
                 )
                 continue
 

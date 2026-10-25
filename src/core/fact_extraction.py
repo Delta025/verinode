@@ -10,17 +10,17 @@ Supports two backends:
 - **Gemini**: Google's Gemini API via ``GeminiFactExtractor``
 
 Use ``create_fact_extractor()`` factory to select backend via the
-``ENGRAM_EXTRACTOR_BACKEND`` environment variable.
+``VERINODE_EXTRACTOR_BACKEND`` environment variable.
 """
 
-from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
 import json
 import logging
 import os
 import re
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 
-from .node import KnowledgeNode, NodeType, Source, Derivation
+from .node import Derivation, KnowledgeNode, NodeType, Source
 
 logger = logging.getLogger(__name__)
 
@@ -43,12 +43,10 @@ def _get_ollama():
     if _ollama is None:
         try:
             import ollama
+
             _ollama = ollama
         except ImportError:
-            raise ImportError(
-                "ollama is required for fact extraction. "
-                "Install with: pip install ollama"
-            )
+            raise ImportError("ollama is required for fact extraction. Install with: pip install ollama")
     return _ollama
 
 
@@ -58,11 +56,11 @@ def _get_genai():
     if _genai is None:
         try:
             from google import genai
+
             _genai = genai
         except ImportError:
             raise ImportError(
-                "google-genai is required for Gemini fact extraction. "
-                "Install with: pip install google-genai"
+                "google-genai is required for Gemini fact extraction. Install with: pip install google-genai"
             )
     return _genai
 
@@ -71,21 +69,24 @@ def _get_genai():
 # Data structures for extraction results
 # ------------------------------------------------------------------
 
+
 @dataclass
 class ExtractedFact:
     """A single fact extracted from text."""
+
     text: str
-    fact_type: str = "fact"          # maps to NodeType value
+    fact_type: str = "fact"  # maps to NodeType value
     confidence: float = 0.5
     domain: str = "general"
     related_facts: List[int] = field(default_factory=list)  # indices into same batch
-    source_quote: str = ""           # relevant span from source text
+    source_quote: str = ""  # relevant span from source text
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class ExtractionResult:
     """Result of a fact extraction operation."""
+
     facts: List[ExtractedFact]
     source_text: str
     model: str
@@ -155,6 +156,7 @@ Extract all discrete facts from the following text:
 # ------------------------------------------------------------------
 # Engine
 # ------------------------------------------------------------------
+
 
 class FactExtractionEngine:
     """
@@ -389,6 +391,7 @@ class FactExtractionEngine:
 # Gemini backend
 # ------------------------------------------------------------------
 
+
 class GeminiFactExtractor:
     """
     Fact extraction using Google's Gemini API.
@@ -400,7 +403,7 @@ class GeminiFactExtractor:
     for shared rate limiting across extraction and contradiction checking.
     """
 
-    DEFAULT_MODEL = "gemini-2.0-flash"
+    DEFAULT_MODEL = "gemini-3.8-flash"
 
     def __init__(
         self,
@@ -414,20 +417,21 @@ class GeminiFactExtractor:
 
         Args:
             api_key: Google Gemini API key.  Falls back to
-                ``ENGRAM_GEMINI_API_KEY`` environment variable.
-            model: Gemini model name.  Defaults to DEFAULT_MODEL.
+                ``VERINODE_GEMINI_API_KEY`` environment variable.
+            model: Gemini model name.  Defaults to $VERINODE_GEMINI_MODEL,
+                   then DEFAULT_MODEL.
             temperature: Sampling temperature (0 = deterministic).
             rate_limiter: Optional :class:`GeminiRateLimiter` instance
                 for shared rate limiting.
         """
-        self.model = model or self.DEFAULT_MODEL
+        self.model = model or os.environ.get("VERINODE_GEMINI_MODEL") or self.DEFAULT_MODEL
         self.temperature = temperature
         self.rate_limiter = rate_limiter
 
-        resolved_key = api_key or os.environ.get("ENGRAM_GEMINI_API_KEY")
+        resolved_key = api_key or os.environ.get("VERINODE_GEMINI_API_KEY")
         if not resolved_key:
             raise ValueError(
-                "Gemini API key required. Set ENGRAM_GEMINI_API_KEY "
+                "Gemini API key required. Set VERINODE_GEMINI_API_KEY "
                 "environment variable or pass api_key= to constructor."
             )
 
@@ -456,9 +460,7 @@ class GeminiFactExtractor:
         from .rate_limiter import DailyLimitReached
 
         domain_hint = f"Domain hint: {domain}" if domain else ""
-        user_msg = EXTRACTION_USER_TEMPLATE.format(
-            text=text, domain_hint=domain_hint
-        )
+        user_msg = EXTRACTION_USER_TEMPLATE.format(text=text, domain_hint=domain_hint)
         prompt_text = EXTRACTION_SYSTEM_PROMPT + "\n\n" + user_msg
 
         max_attempts = (self.rate_limiter.max_retries + 1) if self.rate_limiter else 1
@@ -466,9 +468,7 @@ class GeminiFactExtractor:
         for attempt in range(max_attempts):
             if self.rate_limiter:
                 if not self.rate_limiter.wait_for_slot():
-                    raise DailyLimitReached(
-                        "Gemini daily budget exhausted during extraction"
-                    )
+                    raise DailyLimitReached("Gemini daily budget exhausted during extraction")
 
             try:
                 response = self._client.models.generate_content(
@@ -531,6 +531,7 @@ class GeminiFactExtractor:
 # Factory
 # ------------------------------------------------------------------
 
+
 def create_fact_extractor(
     model: Optional[str] = None,
     host: Optional[str] = None,
@@ -543,7 +544,7 @@ def create_fact_extractor(
 
     Backend selection (in order of priority):
     1. ``backend`` parameter
-    2. ``ENGRAM_EXTRACTOR_BACKEND`` environment variable
+    2. ``VERINODE_EXTRACTOR_BACKEND`` environment variable
     3. Falls back to ``"ollama"``
 
     Args:
@@ -556,9 +557,7 @@ def create_fact_extractor(
     Returns:
         A fact extractor instance, or None if initialization fails.
     """
-    resolved_backend = (
-        backend or os.environ.get("ENGRAM_EXTRACTOR_BACKEND", "ollama")
-    ).lower().strip()
+    resolved_backend = (backend or os.environ.get("VERINODE_EXTRACTOR_BACKEND", "ollama")).lower().strip()
 
     try:
         if resolved_backend == "gemini":

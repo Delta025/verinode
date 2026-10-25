@@ -193,7 +193,7 @@ def run(n_trials: int = 30):
     study = optuna.create_study(
         direction="maximize",
         sampler=optuna.samplers.TPESampler(seed=42),
-        study_name="engram_pipeline_thresholds",
+        study_name="verinode_pipeline_thresholds",
     )
 
     t0 = time.perf_counter()

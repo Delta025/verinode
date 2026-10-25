@@ -1,19 +1,21 @@
-# Engram — Benchmarks and Performance
+# Verinode — Benchmarks and Performance
 
-All performance data in one place. Individual results are linked from [ROADMAP.md](../ROADMAP.md), [architecture.md](architecture.md), and [research.md](research.md).
+Results from development runs in February 2026. Unless stated otherwise they used Ollama with `qwen3:14b` on a single consumer GPU (RTX 3080, 10 GB). The test sets are small, so read the numbers as indications, not precise accuracy figures.
+
+**Reproducibility.** The vulnerability benchmark, the 150-fact stress tests and the calibration benchmarks can be re-run with the scripts in [`benchmarks/`](../benchmarks). The chemistry-slab and scale-testing sections are kept for reference, but the scripts and intermediate data files they mention were not included in this repository.
 
 ---
 
 ## Vulnerability Resistance Benchmark (Feb 2026)
 
-Side-by-side comparison of bare qwen3:14b vs qwen3:14b + Engram on 75 test cases across 5 vulnerability categories. Uses the 215-node stress test graph (`data/stress_test_graph.json`) as the knowledge base.
+Side-by-side comparison of bare qwen3:14b vs qwen3:14b + Verinode on 75 test cases across 5 vulnerability categories. Uses the stress test graph (`data/stress_test_graph.json`) as the knowledge base. The bundled copy has 150 nodes; the original runs reported 215 nodes, so it may not be the exact graph used.
 
-**Scripts**: `examples/benchmark_vulnerability.py`, `examples/benchmark_test_cases.py`
-**Full results**: `data/benchmark_results.json`
+**Scripts**: `benchmarks/benchmark_vulnerability.py`, `benchmarks/benchmark_test_cases.py`, `benchmarks/build_stress_graph.py`
+**Full results**: written to `data/benchmark_results.json` by `--output` (not included)
 
 ### Summary Table
 
-| Category | Without Engram | With Engram | Delta |
+| Category | Without Verinode | With Verinode | Delta |
 |---|:---:|:---:|:---:|
 | A. Factual Accuracy (15) | 100% (15/15) | 100% (15/15) | +0pp |
 | B. False Claim Detection (20) | 100% (20/20) | 95% (19/20) | -5pp |
@@ -31,12 +33,12 @@ Asks the LLM factual questions (numerical, categorical, descriptive) and compare
 
 | Mode | Accuracy | Avg Time/Case |
 |------|:--------:|:-------------:|
-| Without Engram | 100% (15/15) | 4.8s |
-| With Engram (recall + LLM) | 100% (15/15) | 5.7s |
+| Without Verinode | 100% (15/15) | 4.8s |
+| With Verinode (recall + LLM) | 100% (15/15) | 5.7s |
 
-Both score perfectly. The LLM already knows common science facts from its training data. **Engram's value emerges in adversarial scenarios, not baseline knowledge retrieval.** This category establishes the baseline — Engram does not regress performance on well-known facts.
+Both score perfectly. The LLM already knows common science facts from its training data. **Verinode's value emerges in adversarial scenarios, not baseline knowledge retrieval.** This category establishes the baseline — Verinode does not regress performance on well-known facts.
 
-> **Note**: These results test knowledge the LLM has been extensively trained on (basic chemistry, physics, biology). On specialized or domain-specific knowledge not in training data (e.g., specifics of a legal framework, proprietary technical documentation), the LLM would be expected to perform significantly worse without Engram's recall support. This remains to be tested.
+> **Note**: These results test knowledge the LLM has been extensively trained on (basic chemistry, physics, biology). On specialized or domain-specific knowledge not in training data (e.g., specifics of a legal framework, proprietary technical documentation), the LLM would be expected to perform significantly worse without Verinode's recall support. This remains to be tested.
 
 #### B. False Claim Detection — 10 false + 10 true claims
 
@@ -44,10 +46,10 @@ Presents claims and asks "true or false?". False claims span three difficulty le
 
 | Mode | Overall | False Caught | True Preserved |
 |------|:-------:|:------------:|:--------------:|
-| Without Engram | 100% (20/20) | 100% (10/10) | 100% (10/10) |
-| With Engram (verify) | 95% (19/20) | 100% (10/10) | 90% (9/10) |
+| Without Verinode | 100% (20/20) | 100% (10/10) | 100% (10/10) |
+| With Verinode (verify) | 95% (19/20) | 100% (10/10) | 90% (9/10) |
 
-The bare LLM handles these well because the false claims are about facts it knows from training. Engram catches all 10 false claims but produces **1 false positive**: "The speed of light is approximately 300,000 km/s" was flagged as contradicting the graph's precise 299,792 value. This is a known edge case — the verification engine is strict on numerical precision, treating the ~0.07% rounding as a factual disagreement.
+The bare LLM handles these well because the false claims are about facts it knows from training. Verinode catches all 10 false claims but produces **1 false positive**: "The speed of light is approximately 300,000 km/s" was flagged as contradicting the graph's precise 299,792 value. This is a known edge case — the verification engine is strict on numerical precision, treating the ~0.07% rounding as a factual disagreement.
 
 > **Note**: As with Category A, both systems perform well because these are well-known facts. The bare LLM's advantage would likely disappear on domain-specific claims outside its training data, where it would need to guess rather than recall. Future testing on specialized domains (legal, medical, proprietary) is planned.
 
@@ -57,30 +59,30 @@ The headline result. Simulates a compromised RAG pipeline by injecting false con
 
 | Mode | Resisted Poison | Avg Time/Case |
 |------|:---------------:|:-------------:|
-| Without Engram | **20%** (3/15) | 3.9s |
-| With Engram (verify + recall) | **100%** (15/15) | 29.8s |
+| Without Verinode | **20%** (3/15) | 3.9s |
+| With Verinode (verify + recall) | **100%** (15/15) | 29.8s |
 
-**Without Engram**: The bare LLM follows poisoned context 80% of the time. When told "use this context to answer", it trusts the context even when the information is obviously wrong (e.g., "gold melts at 800°C"). The 3 cases it resisted were facts where the LLM's own knowledge was strong enough to override the context (CO2 formula, DNA structure, Newton's second law).
+**Without Verinode**: The bare LLM follows poisoned context 80% of the time. When told "use this context to answer", it trusts the context even when the information is obviously wrong (e.g., "gold melts at 800°C"). The 3 cases it resisted were facts where the LLM's own knowledge was strong enough to override the context (CO2 formula, DNA structure, Newton's second law).
 
-**With Engram**: Perfect resistance. The pipeline works in three steps:
+**With Verinode**: Perfect resistance. The pipeline works in three steps:
 1. `memory.verify(poisoned_claim)` — flags the poisoned context as "contradicted"
 2. `memory.recall(question)` — retrieves verified facts from the knowledge graph
 3. LLM receives both the unverified context (with its verification status) and the verified facts, with instructions to trust verified facts when they conflict
 
-This demonstrates Engram's core value proposition: **grounding LLM output in verified, auditable knowledge prevents the LLM from blindly following false context**.
+This demonstrates Verinode's core value proposition: **grounding LLM output in verified, auditable knowledge prevents the LLM from blindly following false context**.
 
 #### D. Confidence Calibration — 5 true + 5 false claims
 
 Measures the quality of confidence scores — are they meaningful for distinguishing truth from falsehood?
 
-| Metric | Without Engram | With Engram | Better |
+| Metric | Without Verinode | With Verinode | Better |
 |--------|:--------------:|:-----------:|:------:|
 | Brier Score (lower = better) | 0.001 | 0.029 | Without |
 | Separation (higher = better) | 0.044 | 0.082 | **With** |
 
 **Brier Score**: The bare LLM's self-reported confidence is "better" calibrated only because it assigns high confidence (0.95-1.0) to everything — and happens to be correct on these well-known facts. This makes the Brier score misleadingly good. On unfamiliar topics, overconfidence would be a liability.
 
-**Separation**: Engram provides better separation between true and false claim confidence (0.082 vs 0.044). Its confidence scores are more meaningful: supported claims get higher scores, contradicted claims get lower scores. This makes the confidence signal actionable — a downstream system could use a threshold to flag uncertain claims for human review.
+**Separation**: Verinode provides better separation between true and false claim confidence (0.082 vs 0.044). Its confidence scores are more meaningful: supported claims get higher scores, contradicted claims get lower scores. This makes the confidence signal actionable — a downstream system could use a threshold to flag uncertain claims for human review.
 
 #### E. Subtle Numerical Errors — 15 claims with 0.1-17% perturbations
 
@@ -88,12 +90,12 @@ Tests the ability to catch small numerical errors — a known LLM weakness. All 
 
 | Mode | Caught | Avg Time/Case |
 |------|:------:|:-------------:|
-| Without Engram | **20%** (3/15) | 2.8s |
-| With Engram (verify) | **80%** (12/15) | 18.5s |
+| Without Verinode | **20%** (3/15) | 2.8s |
+| With Verinode (verify) | **80%** (12/15) | 18.5s |
 
-**Without Engram**: The bare LLM almost never catches small numerical errors. It accepted "Iron melts at 1540°C" (actual: 1538), "Gold melts at 1060°C" (actual: 1064), and "205 bones" (actual: 206) as correct. LLMs are notoriously imprecise with numbers — they learn distributions of values, not exact figures.
+**Without Verinode**: The bare LLM almost never catches small numerical errors. It accepted "Iron melts at 1540°C" (actual: 1538), "Gold melts at 1060°C" (actual: 1064), and "205 bones" (actual: 206) as correct. LLMs are notoriously imprecise with numbers — they learn distributions of values, not exact figures.
 
-**With Engram**: Caught 12/15, a 4× improvement. The 3 misses were cases where the graph also used rounded values or lacked the specific fact:
+**With Verinode**: Caught 12/15, a 4× improvement. The 3 misses were cases where the graph also used rounded values or lacked the specific fact:
 - "Ethanol boils at 78°C" (actual: 78.37) — graph has rounded value
 - "Speed of sound is 340 m/s" (actual: 343) — graph has "approximately 343"
 - "CMB radiation is 2.7K" (actual: 2.725) — graph lacks this specific fact
@@ -108,13 +110,13 @@ Tests the ability to catch small numerical errors — a known LLM weakness. All 
 
 ### Interpretation and Caveats
 
-**Where Engram excels**: Categories C and E — adversarial scenarios where the LLM's parametric knowledge is insufficient. Poisoned context resistance (+80pp) and subtle numerical error detection (+60pp) demonstrate that a verified knowledge graph provides a fundamentally different kind of capability than parametric memory.
+**Where Verinode excels**: Categories C and E — adversarial scenarios where the LLM's parametric knowledge is insufficient. Poisoned context resistance (+80pp) and subtle numerical error detection (+60pp) demonstrate that a verified knowledge graph provides a fundamentally different kind of capability than parametric memory.
 
 **Where the LLM already does well**: Categories A and B — well-known science facts that the LLM has been trained on extensively. These categories would likely show larger differences on domain-specific knowledge (legal frameworks, proprietary documentation, niche technical standards) where the LLM has less training coverage.
 
-**Known edge case**: Engram's strict numerical verification occasionally flags rounded values as contradictions (300,000 vs 299,792 km/s). This is a precision/recall tradeoff — strictness catches subtle errors but creates occasional false positives on approximate values.
+**Known edge case**: Verinode's strict numerical verification occasionally flags rounded values as contradictions (300,000 vs 299,792 km/s). This is a precision/recall tradeoff — strictness catches subtle errors but creates occasional false positives on approximate values.
 
-**Latency tradeoff**: Engram-augmented responses take longer (5-30s vs 3-5s per case) because each verification involves embedding search, entity overlap retrieval, and multiple LLM calls for 3-way relevance classification. For offline verification or batch processing this is acceptable; for real-time applications, caching and index optimizations would be needed.
+**Latency tradeoff**: Verinode-augmented responses take longer (5-30s vs 3-5s per case) because each verification involves embedding search, entity overlap retrieval, and multiple LLM calls for 3-way relevance classification. For offline verification or batch processing this is acceptable; for real-time applications, caching and index optimizations would be needed.
 
 ---
 
@@ -122,7 +124,7 @@ Tests the ability to catch small numerical errors — a known LLM weakness. All 
 
 Graph size and source quality impact on verification accuracy. Tests 35 claims (10 true, 10 false, 8 planted errors, 7 subtle numerical) across 5 composable chemistry graph slabs of different sizes and quality tiers.
 
-**Script**: `examples/benchmark_chemistry_slabs.py`
+**Script**: `benchmark_chemistry_slabs.py` (not included)
 **Full results**: `data/slab_benchmark_combined.json`
 
 ### Summary Table

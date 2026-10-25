@@ -13,18 +13,17 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from src.core.graph import KnowledgeGraph
-from src.core.node import KnowledgeNode, NodeType, NodeStatus, Source
 from src.core.confidence import ConfidenceEngine
+from src.core.graph import KnowledgeGraph
 from src.core.neuroplasticity import (
     NeuroplasticityEngine,
-    MaintenanceReport,
 )
-
+from src.core.node import KnowledgeNode, NodeStatus, Source
 
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
+
 
 def make_node(
     text,
@@ -116,6 +115,7 @@ def build_diverse_graph(now=None):
 # TestFullMaintenanceCycle
 # ------------------------------------------------------------------
 
+
 class TestFullMaintenanceCycle:
     """Test complete maintenance cycles on diverse graphs."""
 
@@ -170,7 +170,7 @@ class TestFullMaintenanceCycle:
         )
 
         # First cycle at now
-        report1 = engine.run_maintenance(graph, now=now)
+        engine.run_maintenance(graph, now=now)
         conf_after_first = graph.get_node("test").confidence
         assert conf_after_first < 0.80
 
@@ -187,6 +187,7 @@ class TestFullMaintenanceCycle:
 # ------------------------------------------------------------------
 # TestConfidencePropagationIntegration
 # ------------------------------------------------------------------
+
 
 class TestConfidencePropagationIntegration:
     """Test propagation with real ConfidenceEngine (not mocked)."""
@@ -275,6 +276,7 @@ class TestConfidencePropagationIntegration:
 # TestMultiCycleEffects
 # ------------------------------------------------------------------
 
+
 class TestMultiCycleEffects:
     """Test effects of running multiple maintenance cycles."""
 
@@ -300,9 +302,7 @@ class TestMultiCycleEffects:
             cycle_time = now + timedelta(days=30 * i)
             engine.apply_staleness_decay(graph, now=cycle_time)
             current_conf = graph.get_node("aging").confidence
-            assert current_conf <= prev_conf, (
-                f"Cycle {i}: confidence {current_conf} > prev {prev_conf}"
-            )
+            assert current_conf <= prev_conf, f"Cycle {i}: confidence {current_conf} > prev {prev_conf}"
             prev_conf = current_conf
 
         # After 5 cycles (150 days total since last_validated),
@@ -367,6 +367,7 @@ class TestMultiCycleEffects:
 # TestDryRunIsolation
 # ------------------------------------------------------------------
 
+
 class TestDryRunIsolation:
     """Ensure dry-run approach (copying nodes to fresh graph) is isolated."""
 
@@ -376,9 +377,7 @@ class TestDryRunIsolation:
         graph = build_diverse_graph(now=now)
 
         # Snapshot original confidences
-        original_confs = {
-            nid: n.confidence for nid, n in graph.nodes.items()
-        }
+        original_confs = {nid: n.confidence for nid, n in graph.nodes.items()}
 
         # Create dry-run copy (same approach as CLI maintain --dry-run)
         graph_copy = KnowledgeGraph()
@@ -397,14 +396,13 @@ class TestDryRunIsolation:
 
         # Verify original is unchanged
         for nid, original_conf in original_confs.items():
-            assert graph.get_node(nid).confidence == original_conf, (
-                f"Node {nid} confidence changed in original graph!"
-            )
+            assert graph.get_node(nid).confidence == original_conf, f"Node {nid} confidence changed in original graph!"
 
 
 # ------------------------------------------------------------------
 # TestGraphSerialization
 # ------------------------------------------------------------------
+
 
 class TestGraphSerialization:
     """Test that maintenance results survive graph save/load."""

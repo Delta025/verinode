@@ -21,18 +21,18 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from core.node import KnowledgeNode, NodeType
-from core.graph import KnowledgeGraph
 from core.dependency_detection import (
     DependencyDetector,
     DetectedDependency,
     RelationType,
 )
-
+from core.graph import KnowledgeGraph
+from core.node import KnowledgeNode, NodeType
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _graph_with(*texts_and_domains):
     """Create a graph with the given (text, domain) pairs."""
@@ -53,11 +53,11 @@ def _graph_with(*texts_and_domains):
 # Tests: text similarity (Jaccard fallback)
 # ---------------------------------------------------------------------------
 
+
 def test_text_similarity_identical():
     """Identical texts have similarity 1.0."""
     sim = DependencyDetector._text_similarity(
-        "Water boils at 100 degrees Celsius",
-        "Water boils at 100 degrees Celsius"
+        "Water boils at 100 degrees Celsius", "Water boils at 100 degrees Celsius"
     )
     assert sim == 1.0
     print("  text_similarity_identical passed")
@@ -65,20 +65,14 @@ def test_text_similarity_identical():
 
 def test_text_similarity_disjoint():
     """Completely different texts have similarity 0."""
-    sim = DependencyDetector._text_similarity(
-        "Photosynthesis converts sunlight",
-        "Gravity pulls objects downward"
-    )
+    sim = DependencyDetector._text_similarity("Photosynthesis converts sunlight", "Gravity pulls objects downward")
     assert sim == 0.0
     print("  text_similarity_disjoint passed")
 
 
 def test_text_similarity_partial():
     """Partially overlapping texts have intermediate similarity."""
-    sim = DependencyDetector._text_similarity(
-        "Water boils at 100 degrees",
-        "Water freezes at 0 degrees"
-    )
+    sim = DependencyDetector._text_similarity("Water boils at 100 degrees", "Water freezes at 0 degrees")
     assert 0.0 < sim < 1.0
     print("  text_similarity_partial passed")
 
@@ -86,6 +80,7 @@ def test_text_similarity_partial():
 # ---------------------------------------------------------------------------
 # Tests: contradiction detection
 # ---------------------------------------------------------------------------
+
 
 def test_contradiction_detected():
     """Negation mismatch on similar content is flagged as contradiction."""
@@ -119,6 +114,7 @@ def test_no_contradiction_same_polarity():
 # Tests: definitional dependency
 # ---------------------------------------------------------------------------
 
+
 def test_definitional_dependency():
     """A node using a defined concept depends on the definition."""
     graph, nodes = _graph_with(
@@ -140,6 +136,7 @@ def test_definitional_dependency():
 # Tests: causal dependency
 # ---------------------------------------------------------------------------
 
+
 def test_causal_dependency():
     """Causal language triggers a DEPENDS_ON detection."""
     graph, nodes = _graph_with(
@@ -149,7 +146,9 @@ def test_causal_dependency():
     detector = DependencyDetector(similarity_threshold=0.1, dependency_confidence_threshold=0.1)
     deps = detector.detect_all(graph)
 
-    depends = [d for d in deps if d.relation in (RelationType.DEPENDS_ON, RelationType.SUPPORTS, RelationType.ELABORATES)]
+    depends = [
+        d for d in deps if d.relation in (RelationType.DEPENDS_ON, RelationType.SUPPORTS, RelationType.ELABORATES)
+    ]
     assert len(depends) >= 1
     print("  causal_dependency passed")
 
@@ -157,6 +156,7 @@ def test_causal_dependency():
 # ---------------------------------------------------------------------------
 # Tests: entity overlap / elaboration
 # ---------------------------------------------------------------------------
+
 
 def test_elaboration_detection():
     """A more specific statement about the same entities is classified as ELABORATES."""
@@ -182,6 +182,7 @@ def test_elaboration_detection():
 # Tests: high-similarity support
 # ---------------------------------------------------------------------------
 
+
 def test_support_high_similarity():
     """High semantic overlap in same domain → SUPPORTS."""
     # Use texts with very high Jaccard overlap (>0.6) to trigger SUPPORTS path
@@ -200,6 +201,7 @@ def test_support_high_similarity():
 # ---------------------------------------------------------------------------
 # Tests: apply_dependencies (graph wiring)
 # ---------------------------------------------------------------------------
+
 
 def test_apply_depends_on():
     """apply_dependencies wires DEPENDS_ON as predecessor edge."""
@@ -277,6 +279,7 @@ def test_apply_no_duplicate_edges():
 # Tests: edge cases
 # ---------------------------------------------------------------------------
 
+
 def test_empty_graph():
     """Empty graph returns no dependencies."""
     graph = KnowledgeGraph()
@@ -305,8 +308,9 @@ def test_detect_for_node_without_embeddings():
     detector = DependencyDetector(similarity_threshold=0.1, dependency_confidence_threshold=0.1)
     deps = detector.detect_for_node(nodes[0], graph)
     # Should find contradiction with nodes[1] (high overlap + negation mismatch)
-    water_related = [d for d in deps if d.source_id in (nodes[0].id, nodes[1].id)
-                     or d.target_id in (nodes[0].id, nodes[1].id)]
+    water_related = [
+        d for d in deps if d.source_id in (nodes[0].id, nodes[1].id) or d.target_id in (nodes[0].id, nodes[1].id)
+    ]
     assert len(water_related) >= 1
     print("  detect_for_node_without_embeddings passed")
 
@@ -330,6 +334,7 @@ def test_confidence_threshold_filters():
 
 import pytest
 
+
 @pytest.fixture(scope="module")
 def _shared_embedding_engine():
     """Shared EmbeddingEngine for tests that need real embeddings.
@@ -338,6 +343,7 @@ def _shared_embedding_engine():
     HTTP checks to HuggingFace that can cause transient timeouts.
     """
     from core.embeddings import EmbeddingEngine
+
     return EmbeddingEngine()
 
 
@@ -396,9 +402,11 @@ def test_detect_for_node_with_embeddings(_shared_embedding_engine):
 # Tests: LLM-assisted contradiction detection
 # ---------------------------------------------------------------------------
 
+
 def test_llm_contradiction_detection():
     """ContradictionChecker detects contradictions the heuristic misses."""
     from unittest.mock import MagicMock
+
     from core.llm_contradiction import RelevanceResult
 
     graph, nodes = _graph_with(
@@ -432,6 +440,7 @@ def test_llm_contradiction_detection():
 def test_llm_overrides_heuristic_false_positive():
     """LLM can override a heuristic false positive (negation that isn't a real contradiction)."""
     from unittest.mock import MagicMock
+
     from core.llm_contradiction import RelevanceResult
 
     graph, nodes = _graph_with(
@@ -480,13 +489,17 @@ def test_no_llm_behaviour_unchanged():
 # Runner
 # ---------------------------------------------------------------------------
 
+
 def test_apply_dependencies_rejects_cycle():
     """apply_dependencies skips edges that would create cycles."""
     graph, nodes = _graph_with("Fact A", "Fact B")
     # Wire A -> B (A is predecessor of B)
     dep1 = DetectedDependency(
-        source_id=nodes[0].id, target_id=nodes[1].id,
-        relation=RelationType.DEPENDS_ON, confidence=0.8, evidence="test",
+        source_id=nodes[0].id,
+        target_id=nodes[1].id,
+        relation=RelationType.DEPENDS_ON,
+        confidence=0.8,
+        evidence="test",
     )
     detector = DependencyDetector()
     detector.apply_dependencies([dep1], graph)
@@ -494,8 +507,11 @@ def test_apply_dependencies_rejects_cycle():
 
     # Try to wire B -> A (would create cycle)
     dep2 = DetectedDependency(
-        source_id=nodes[1].id, target_id=nodes[0].id,
-        relation=RelationType.SUPPORTS, confidence=0.7, evidence="test",
+        source_id=nodes[1].id,
+        target_id=nodes[0].id,
+        relation=RelationType.SUPPORTS,
+        confidence=0.7,
+        evidence="test",
     )
     added = detector.apply_dependencies([dep2], graph)
     assert added == 0  # Cycle rejected
@@ -506,8 +522,11 @@ def test_apply_dependencies_preserves_relation_type():
     """apply_dependencies stores the relation type as edge label."""
     graph, nodes = _graph_with("Fact A", "Fact B")
     dep = DetectedDependency(
-        source_id=nodes[0].id, target_id=nodes[1].id,
-        relation=RelationType.SUPPORTS, confidence=0.7, evidence="test",
+        source_id=nodes[0].id,
+        target_id=nodes[1].id,
+        relation=RelationType.SUPPORTS,
+        confidence=0.7,
+        evidence="test",
     )
     detector = DependencyDetector()
     detector.apply_dependencies([dep], graph)
@@ -518,8 +537,11 @@ def test_apply_dependencies_wires_elaborates():
     """ELABORATES relations are now wired as edges (previously dropped)."""
     graph, nodes = _graph_with("Fact A", "Fact B")
     dep = DetectedDependency(
-        source_id=nodes[0].id, target_id=nodes[1].id,
-        relation=RelationType.ELABORATES, confidence=0.7, evidence="test",
+        source_id=nodes[0].id,
+        target_id=nodes[1].id,
+        relation=RelationType.ELABORATES,
+        confidence=0.7,
+        evidence="test",
     )
     detector = DependencyDetector()
     added = detector.apply_dependencies([dep], graph)
@@ -530,6 +552,7 @@ def test_apply_dependencies_wires_elaborates():
 
 def run_all_tests():
     from core.embeddings import EmbeddingEngine
+
     print("\nRunning dependency detection tests...\n")
     test_text_similarity_identical()
     test_text_similarity_disjoint()

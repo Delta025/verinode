@@ -1,21 +1,30 @@
 """Graph-level routes: stats, visualization data, anomalies, history, graph loading, file browser."""
 
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional
 
 import src.api.state as state_mod
 from src.api.schemas import (
-    GraphStats, GraphData, CytoscapeNode, CytoscapeNodeData,
-    CytoscapeEdge, CytoscapeEdgeData, AnomalyItem, ChangelogEntry,
-    LoadGraphRequest, LoadGraphResponse,
-    SaveGraphRequest, SaveGraphResponse,
-    MergeGraphRequest, MergeGraphResponse,
-    FileEntry, FileBrowseResponse,
+    AnomalyItem,
+    ChangelogEntry,
+    CytoscapeEdge,
+    CytoscapeEdgeData,
+    CytoscapeNode,
+    CytoscapeNodeData,
+    FileBrowseResponse,
+    FileEntry,
+    GraphData,
+    GraphStats,
+    LoadGraphRequest,
+    LoadGraphResponse,
+    MergeGraphRequest,
+    MergeGraphResponse,
+    SaveGraphRequest,
+    SaveGraphResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -42,42 +51,48 @@ def get_graph_data():
         # Truncate label for display
         label = node.text[:60] + "..." if len(node.text) > 60 else node.text
 
-        nodes.append(CytoscapeNode(
-            data=CytoscapeNodeData(
-                id=nid,
-                label=label,
-                confidence=node.confidence,
-                domain=node.domain or "general",
-                node_type=node.node_type.value if hasattr(node.node_type, "value") else str(node.node_type),
-                status=node.status.value if hasattr(node.status, "value") else str(node.status),
+        nodes.append(
+            CytoscapeNode(
+                data=CytoscapeNodeData(
+                    id=nid,
+                    label=label,
+                    confidence=node.confidence,
+                    domain=node.domain or "general",
+                    node_type=node.node_type.value if hasattr(node.node_type, "value") else str(node.node_type),
+                    status=node.status.value if hasattr(node.status, "value") else str(node.status),
+                )
             )
-        ))
+        )
 
         # Predecessor edges (dependency)
         for pred_id in node.predecessor_nodes:
             if pred_id in graph.nodes:
                 edge_type = node.get_edge_label(pred_id)
-                edges.append(CytoscapeEdge(
-                    data=CytoscapeEdgeData(
-                        id=f"e{edge_id}",
-                        source=pred_id,
-                        target=nid,
-                        type=edge_type,
+                edges.append(
+                    CytoscapeEdge(
+                        data=CytoscapeEdgeData(
+                            id=f"e{edge_id}",
+                            source=pred_id,
+                            target=nid,
+                            type=edge_type,
+                        )
                     )
-                ))
+                )
                 edge_id += 1
 
         # Conflict edges (undirected, emit once per pair)
         for conflict_id in node.conflicts_with:
             if conflict_id in graph.nodes and nid < conflict_id:
-                edges.append(CytoscapeEdge(
-                    data=CytoscapeEdgeData(
-                        id=f"e{edge_id}",
-                        source=nid,
-                        target=conflict_id,
-                        type="contradicts",
+                edges.append(
+                    CytoscapeEdge(
+                        data=CytoscapeEdgeData(
+                            id=f"e{edge_id}",
+                            source=nid,
+                            target=conflict_id,
+                            type="contradicts",
+                        )
                     )
-                ))
+                )
                 edge_id += 1
 
     return GraphData(nodes=nodes, edges=edges)
@@ -91,15 +106,17 @@ def get_anomalies(threshold: float = Query(0.15, ge=0.0, le=1.0)):
     items = []
     for a in anomalies:
         if a.get("severity", a.get("deviation", 0)) >= threshold:
-            items.append(AnomalyItem(
-                node_id=a.get("node_id", ""),
-                node_text=a.get("node_text", a.get("text", "")),
-                anomaly_type=a.get("anomaly_type", a.get("type", "deviation")),
-                expected_confidence=a.get("expected_confidence", a.get("expected", 0)),
-                actual_confidence=a.get("actual_confidence", a.get("actual", 0)),
-                deviation=a.get("deviation", 0),
-                severity=a.get("severity", a.get("deviation", 0)),
-            ))
+            items.append(
+                AnomalyItem(
+                    node_id=a.get("node_id", ""),
+                    node_text=a.get("node_text", a.get("text", "")),
+                    anomaly_type=a.get("anomaly_type", a.get("type", "deviation")),
+                    expected_confidence=a.get("expected_confidence", a.get("expected", 0)),
+                    actual_confidence=a.get("actual_confidence", a.get("actual", 0)),
+                    deviation=a.get("deviation", 0),
+                    severity=a.get("severity", a.get("deviation", 0)),
+                )
+            )
     return items
 
 
@@ -140,6 +157,7 @@ def load_graph(req: LoadGraphRequest):
 
         if path.suffix in (".db", ".sqlite", ".sqlite3"):
             from src.core.storage import SqliteGraph
+
             st.graph = SqliteGraph(str(path))
         else:
             st.graph = KnowledgeGraph.load(str(path))
@@ -194,17 +212,19 @@ def merge_graph(req: MergeGraphRequest):
         raise HTTPException(status_code=400, detail=f"Invalid strategy: {req.strategy}")
 
     try:
-        from src.core.graph import KnowledgeGraph
         from src.core.export import merge_graphs
+        from src.core.graph import KnowledgeGraph
 
         if path.suffix in (".db", ".sqlite", ".sqlite3"):
             from src.core.storage import SqliteGraph
+
             graph_b = SqliteGraph(str(path))
         else:
             graph_b = KnowledgeGraph.load(str(path))
 
         merged, stats = merge_graphs(
-            st.graph, graph_b,
+            st.graph,
+            graph_b,
             conflict_strategy=req.strategy,
             merge_sources=req.merge_sources,
         )
@@ -267,13 +287,15 @@ def browse_files(
             except OSError:
                 modified = None
                 size = 0
-            entries.append(FileEntry(
-                name=item.name,
-                path=str(item),
-                is_dir=is_dir,
-                size=size,
-                modified=modified,
-            ))
+            entries.append(
+                FileEntry(
+                    name=item.name,
+                    path=str(item),
+                    is_dir=is_dir,
+                    size=size,
+                    modified=modified,
+                )
+            )
     except PermissionError:
         raise HTTPException(status_code=403, detail=f"Permission denied: {target}")
 

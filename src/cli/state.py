@@ -1,5 +1,5 @@
 """
-Engine state management for the Engram CLI.
+Engine state management for the Verinode CLI.
 
 Handles graph loading/saving and lazy initialisation of
 heavyweight components (embedding engine, pipeline, etc.)
@@ -10,6 +10,7 @@ Supports both JSON (``.json``) and SQLite (``.db``) graph files.
 The file extension determines which backend is used automatically.
 """
 
+import os
 import sys
 from pathlib import Path
 from typing import Optional
@@ -21,10 +22,10 @@ _src_root = str(Path(__file__).resolve().parent.parent.parent)
 if _src_root not in sys.path:
     sys.path.insert(0, _src_root)
 
-from src.core.graph import KnowledgeGraph
 from src.core.confidence import ConfidenceEngine
-from src.core.reasoning import ReasoningEngine
+from src.core.graph import KnowledgeGraph
 from src.core.neuroplasticity import NeuroplasticityEngine
+from src.core.reasoning import ReasoningEngine
 
 
 def _is_sqlite_path(path: str) -> bool:
@@ -140,14 +141,17 @@ class EngineState:
     def pipeline(self):
         """Return (or lazily create) the ``Pipeline``."""
         if self._pipeline is None:
+            from src.core.fact_extraction import create_fact_extractor
             from src.core.pipeline import Pipeline
-            from src.core.fact_extraction import FactExtractionEngine
 
-            try:
-                extractor = FactExtractionEngine(model=self.model)
-            except Exception as exc:
+            backend = os.environ.get("VERINODE_EXTRACTOR_BACKEND", "ollama")
+            # The --model option names an Ollama model; Gemini uses its own default.
+            model = self.model if backend == "ollama" else None
+            extractor = create_fact_extractor(model=model, backend=backend)
+            if extractor is None:
                 raise click.ClickException(
-                    f"Cannot create fact extractor (is Ollama running?): {exc}"
+                    f"Cannot create fact extractor for backend '{backend}' "
+                    "(is Ollama running, or is VERINODE_GEMINI_API_KEY set?)"
                 )
 
             self._pipeline = Pipeline(
@@ -155,6 +159,7 @@ class EngineState:
                 extractor=extractor,
                 embedding_engine=self.embedding_engine,
                 confidence_engine=self.confidence_engine,
+                contradiction_checker=self.contradiction_checker,
             )
         return self._pipeline
 
@@ -164,9 +169,9 @@ class EngineState:
         if self._contradiction_checker is None:
             from src.core.llm_contradiction import create_contradiction_checker
 
-            self._contradiction_checker = create_contradiction_checker(
-                model=self.model
-            )
+            backend = os.environ.get("VERINODE_CHECKER_BACKEND", "ollama")
+            model = self.model if backend == "ollama" else None
+            self._contradiction_checker = create_contradiction_checker(model=model, backend=backend)
         return self._contradiction_checker
 
     @property

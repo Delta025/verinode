@@ -2,28 +2,26 @@
 Tests for the VerificationEngine: claim verification and retraction simulation.
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+from src.core.entity_index import extract_content_words
 from src.core.graph import KnowledgeGraph
-from src.core.node import KnowledgeNode, NodeType, Source, Derivation
-from src.core.confidence import ConfidenceEngine
-from src.core.reasoning import ReasoningEngine
+from src.core.llm_contradiction import RelevanceResult
+from src.core.node import Derivation, KnowledgeNode, Source
 from src.core.verification import (
+    RetractionSimulation,
+    SourceEvidence,
+    Verdict,
     VerificationEngine,
     VerificationResult,
-    Verdict,
-    SourceEvidence,
-    RetractionSimulation,
-    RetractedNodeImpact,
 )
-from src.core.entity_index import extract_content_words
-from src.core.llm_contradiction import RelevanceResult
-
 
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
+
 
 def make_node(text, confidence=0.9, domain="chemistry", node_id=None, predecessors=None):
     """Create a KnowledgeNode for testing."""
@@ -76,6 +74,7 @@ def build_simple_graph():
 # Unit tests: extract_content_words
 # ------------------------------------------------------------------
 
+
 class TestExtractContentWords:
     def test_extracts_content_words(self):
         words = extract_content_words("Water boils at 100 degrees Celsius")
@@ -102,6 +101,7 @@ class TestExtractContentWords:
 # ------------------------------------------------------------------
 # Unit tests: verify()
 # ------------------------------------------------------------------
+
 
 class TestVerifyEmptyGraph:
     def test_empty_graph_returns_insufficient_evidence(self):
@@ -170,11 +170,13 @@ class TestVerifyContradicted:
     def test_heuristic_contradiction_via_negation(self):
         """Negation in claim but not in graph → heuristic contradiction."""
         graph = KnowledgeGraph()
-        graph.add_node(make_node(
-            "Water boils at 100 degrees Celsius",
-            confidence=0.95,
-            node_id="node-1",
-        ))
+        graph.add_node(
+            make_node(
+                "Water boils at 100 degrees Celsius",
+                confidence=0.95,
+                node_id="node-1",
+            )
+        )
 
         # Mock embedding engine returning the relevant node
         mock_emb = MagicMock()
@@ -192,11 +194,13 @@ class TestVerifyContradicted:
     def test_llm_contradiction_detection(self):
         """LLM checker should detect numerical contradictions via 3-way classification."""
         graph = KnowledgeGraph()
-        graph.add_node(make_node(
-            "Water boils at 100 degrees Celsius",
-            confidence=0.95,
-            node_id="node-1",
-        ))
+        graph.add_node(
+            make_node(
+                "Water boils at 100 degrees Celsius",
+                confidence=0.95,
+                node_id="node-1",
+            )
+        )
 
         mock_emb = MagicMock()
         mock_emb.index_size = 1
@@ -230,11 +234,13 @@ class TestVerifyContradicted:
     def test_contradicting_evidence_has_explanation(self):
         """Contradicting evidence should include an explanation."""
         graph = KnowledgeGraph()
-        graph.add_node(make_node(
-            "Water boils at 100 degrees Celsius",
-            confidence=0.95,
-            node_id="node-1",
-        ))
+        graph.add_node(
+            make_node(
+                "Water boils at 100 degrees Celsius",
+                confidence=0.95,
+                node_id="node-1",
+            )
+        )
 
         mock_emb = MagicMock()
         mock_emb.index_size = 1
@@ -256,16 +262,20 @@ class TestVerifyUncertain:
         """When support and contradiction are close, verdict is UNCERTAIN."""
         graph = KnowledgeGraph()
         # Two nodes with similar confidence — one supports, one contradicts
-        graph.add_node(make_node(
-            "Water boils at 100 degrees Celsius at standard pressure",
-            confidence=0.85,
-            node_id="support-1",
-        ))
-        graph.add_node(make_node(
-            "Water does not boil at 100 degrees Celsius at high altitude",
-            confidence=0.82,
-            node_id="contra-1",
-        ))
+        graph.add_node(
+            make_node(
+                "Water boils at 100 degrees Celsius at standard pressure",
+                confidence=0.85,
+                node_id="support-1",
+            )
+        )
+        graph.add_node(
+            make_node(
+                "Water does not boil at 100 degrees Celsius at high altitude",
+                confidence=0.82,
+                node_id="contra-1",
+            )
+        )
 
         # Mock embedding returning both
         mock_emb = MagicMock()
@@ -327,6 +337,7 @@ class TestVerifyBackwardChains:
 # ------------------------------------------------------------------
 # Unit tests: simulate_retraction()
 # ------------------------------------------------------------------
+
 
 class TestSimulateRetractionNotFound:
     def test_nonexistent_node(self):
@@ -397,13 +408,11 @@ class TestSimulateRetractionCascade:
         original_confs = {nid: n.confidence for nid, n in graph.nodes.items()}
 
         engine = VerificationEngine(graph)
-        sim = engine.simulate_retraction("root-001")
+        engine.simulate_retraction("root-001")
 
         # Check all confidences restored
         for nid, orig_conf in original_confs.items():
-            assert graph.get_node(nid).confidence == orig_conf, (
-                f"Node {nid} confidence not restored"
-            )
+            assert graph.get_node(nid).confidence == orig_conf, f"Node {nid} confidence not restored"
 
 
 class TestSimulateRetractionOrphaned:
@@ -526,6 +535,7 @@ class TestSimulateRetractionSummaryStats:
 # Unit tests: _bfs_with_hops
 # ------------------------------------------------------------------
 
+
 class TestBFSWithHops:
     def test_bfs_finds_successors_with_distances(self):
         """BFS should return successors with correct hop distances."""
@@ -570,15 +580,18 @@ class TestBFSWithHops:
 # Unit tests: LLM fallback behavior
 # ------------------------------------------------------------------
 
+
 class TestLLMFallback:
     def test_no_llm_uses_heuristic_only(self):
         """Without contradiction checker, only heuristic is used."""
         graph = KnowledgeGraph()
-        graph.add_node(make_node(
-            "Water boils at 100 degrees Celsius",
-            confidence=0.9,
-            node_id="node-1",
-        ))
+        graph.add_node(
+            make_node(
+                "Water boils at 100 degrees Celsius",
+                confidence=0.9,
+                node_id="node-1",
+            )
+        )
 
         mock_emb = MagicMock()
         mock_emb.index_size = 1
@@ -600,11 +613,13 @@ class TestLLMFallback:
     def test_llm_irrelevant_result_filters_candidate(self):
         """When LLM returns irrelevant, the candidate is excluded from evidence."""
         graph = KnowledgeGraph()
-        graph.add_node(make_node(
-            "Water boils at 100 degrees Celsius",
-            confidence=0.9,
-            node_id="node-1",
-        ))
+        graph.add_node(
+            make_node(
+                "Water boils at 100 degrees Celsius",
+                confidence=0.9,
+                node_id="node-1",
+            )
+        )
 
         mock_emb = MagicMock()
         mock_emb.index_size = 1
@@ -638,6 +653,7 @@ class TestLLMFallback:
 # ------------------------------------------------------------------
 # Integration-style tests
 # ------------------------------------------------------------------
+
 
 class TestVerificationEngineIntegration:
     def test_full_workflow_supported_claim(self):
@@ -676,7 +692,7 @@ class TestVerificationEngineIntegration:
         orig = {nid: n.confidence for nid, n in graph.nodes.items()}
 
         # Patch _topological_sort to raise mid-simulation
-        with patch.object(engine.confidence_engine, '_topological_sort', side_effect=RuntimeError("boom")):
+        with patch.object(engine.confidence_engine, "_topological_sort", side_effect=RuntimeError("boom")):
             with pytest.raises(RuntimeError, match="boom"):
                 engine.simulate_retraction("root-001")
 
@@ -719,20 +735,25 @@ class TestVerificationEngineIntegration:
 # Unit tests: Relevance filtering (Step 11a)
 # ------------------------------------------------------------------
 
+
 class TestRelevanceFiltering:
     def test_irrelevant_evidence_excluded_heuristic(self):
         """Low-similarity candidates are excluded as irrelevant in heuristic mode."""
         graph = KnowledgeGraph()
-        graph.add_node(make_node(
-            "Gold melts at 1064 degrees Celsius",
-            confidence=0.95,
-            node_id="gold-melt",
-        ))
-        graph.add_node(make_node(
-            "Gold is a chemical element with symbol Au",
-            confidence=0.90,
-            node_id="gold-element",
-        ))
+        graph.add_node(
+            make_node(
+                "Gold melts at 1064 degrees Celsius",
+                confidence=0.95,
+                node_id="gold-melt",
+            )
+        )
+        graph.add_node(
+            make_node(
+                "Gold is a chemical element with symbol Au",
+                confidence=0.90,
+                node_id="gold-element",
+            )
+        )
 
         mock_emb = MagicMock()
         mock_emb.index_size = 2
@@ -751,16 +772,20 @@ class TestRelevanceFiltering:
     def test_llm_3way_excludes_irrelevant(self):
         """LLM 3-way classification correctly excludes irrelevant evidence."""
         graph = KnowledgeGraph()
-        graph.add_node(make_node(
-            "Gold melts at 1064 degrees Celsius",
-            confidence=0.95,
-            node_id="gold-melt",
-        ))
-        graph.add_node(make_node(
-            "Gold is a chemical element",
-            confidence=0.90,
-            node_id="gold-element",
-        ))
+        graph.add_node(
+            make_node(
+                "Gold melts at 1064 degrees Celsius",
+                confidence=0.95,
+                node_id="gold-melt",
+            )
+        )
+        graph.add_node(
+            make_node(
+                "Gold is a chemical element",
+                confidence=0.90,
+                node_id="gold-element",
+            )
+        )
 
         mock_emb = MagicMock()
         mock_emb.index_size = 2
@@ -801,11 +826,13 @@ class TestRelevanceFiltering:
     def test_all_irrelevant_yields_insufficient_evidence(self):
         """When all candidates are irrelevant, verdict is INSUFFICIENT_EVIDENCE."""
         graph = KnowledgeGraph()
-        graph.add_node(make_node(
-            "Gold is a chemical element",
-            confidence=0.90,
-            node_id="gold-element",
-        ))
+        graph.add_node(
+            make_node(
+                "Gold is a chemical element",
+                confidence=0.90,
+                node_id="gold-element",
+            )
+        )
 
         mock_emb = MagicMock()
         mock_emb.index_size = 1
@@ -822,29 +849,35 @@ class TestRelevanceFiltering:
         """Core bug fix: false claim with irrelevant noise should be CONTRADICTED."""
         graph = KnowledgeGraph()
         # The correct fact
-        graph.add_node(make_node(
-            "Water boils at 100 degrees Celsius",
-            confidence=0.95,
-            node_id="correct-fact",
-        ))
+        graph.add_node(
+            make_node(
+                "Water boils at 100 degrees Celsius",
+                confidence=0.95,
+                node_id="correct-fact",
+            )
+        )
         # Irrelevant but related facts
-        graph.add_node(make_node(
-            "Water is a chemical compound with formula H2O",
-            confidence=0.92,
-            node_id="water-compound",
-        ))
-        graph.add_node(make_node(
-            "Water freezes at 0 degrees Celsius",
-            confidence=0.93,
-            node_id="water-freeze",
-        ))
+        graph.add_node(
+            make_node(
+                "Water is a chemical compound with formula H2O",
+                confidence=0.92,
+                node_id="water-compound",
+            )
+        )
+        graph.add_node(
+            make_node(
+                "Water freezes at 0 degrees Celsius",
+                confidence=0.93,
+                node_id="water-freeze",
+            )
+        )
 
         mock_emb = MagicMock()
         mock_emb.index_size = 3
         mock_emb.search.return_value = [
             {"node_id": "correct-fact", "score": 0.90},
             {"node_id": "water-compound", "score": 0.55},  # Irrelevant (below threshold)
-            {"node_id": "water-freeze", "score": 0.60},    # Irrelevant (below threshold)
+            {"node_id": "water-freeze", "score": 0.60},  # Irrelevant (below threshold)
         ]
 
         mock_checker = MagicMock()
@@ -888,6 +921,7 @@ class TestRelevanceFiltering:
 # Unit tests: Weighted evidence (Step 11b)
 # ------------------------------------------------------------------
 
+
 class TestWeightedEvidence:
     def test_confidence_weighted_by_similarity(self):
         """Evidence confidence should be weighted by similarity score."""
@@ -921,16 +955,20 @@ class TestWeightedEvidence:
     def test_high_similarity_contradiction_outweighs_low_similarity_support(self):
         """Contradiction with high similarity should outweigh lower-similarity support."""
         graph = KnowledgeGraph()
-        graph.add_node(make_node(
-            "Water boils at 100 degrees Celsius",
-            confidence=0.90,
-            node_id="node-correct",
-        ))
-        graph.add_node(make_node(
-            "Steam is produced when water boils at sea level",
-            confidence=0.85,
-            node_id="node-related",
-        ))
+        graph.add_node(
+            make_node(
+                "Water boils at 100 degrees Celsius",
+                confidence=0.90,
+                node_id="node-correct",
+            )
+        )
+        graph.add_node(
+            make_node(
+                "Steam is produced when water boils at sea level",
+                confidence=0.85,
+                node_id="node-related",
+            )
+        )
 
         mock_emb = MagicMock()
         mock_emb.index_size = 2
@@ -974,6 +1012,7 @@ class TestWeightedEvidence:
 # Unit tests: Verdict tiebreaker (Step 11c)
 # ------------------------------------------------------------------
 
+
 class TestVerdictTiebreaker:
     def test_tiebreaker_favors_majority_contradictions(self):
         """When confidence is similar, more contradictions should win."""
@@ -981,16 +1020,22 @@ class TestVerdictTiebreaker:
         engine = VerificationEngine(graph)
 
         contra1 = SourceEvidence(
-            node_id="c1", node_text="Contra 1",
-            confidence=0.80, relationship="contradicts",
+            node_id="c1",
+            node_text="Contra 1",
+            confidence=0.80,
+            relationship="contradicts",
         )
         contra2 = SourceEvidence(
-            node_id="c2", node_text="Contra 2",
-            confidence=0.78, relationship="contradicts",
+            node_id="c2",
+            node_text="Contra 2",
+            confidence=0.78,
+            relationship="contradicts",
         )
         support1 = SourceEvidence(
-            node_id="s1", node_text="Support 1",
-            confidence=0.79, relationship="supports",
+            node_id="s1",
+            node_text="Support 1",
+            confidence=0.79,
+            relationship="supports",
         )
 
         result = engine._compute_verdict(
@@ -1007,16 +1052,22 @@ class TestVerdictTiebreaker:
         engine = VerificationEngine(graph)
 
         contra1 = SourceEvidence(
-            node_id="c1", node_text="Contra 1",
-            confidence=0.80, relationship="contradicts",
+            node_id="c1",
+            node_text="Contra 1",
+            confidence=0.80,
+            relationship="contradicts",
         )
         support1 = SourceEvidence(
-            node_id="s1", node_text="Support 1",
-            confidence=0.79, relationship="supports",
+            node_id="s1",
+            node_text="Support 1",
+            confidence=0.79,
+            relationship="supports",
         )
         support2 = SourceEvidence(
-            node_id="s2", node_text="Support 2",
-            confidence=0.78, relationship="supports",
+            node_id="s2",
+            node_text="Support 2",
+            confidence=0.78,
+            relationship="supports",
         )
 
         result = engine._compute_verdict(
@@ -1033,12 +1084,16 @@ class TestVerdictTiebreaker:
         engine = VerificationEngine(graph)
 
         contra1 = SourceEvidence(
-            node_id="c1", node_text="Contra 1",
-            confidence=0.80, relationship="contradicts",
+            node_id="c1",
+            node_text="Contra 1",
+            confidence=0.80,
+            relationship="contradicts",
         )
         support1 = SourceEvidence(
-            node_id="s1", node_text="Support 1",
-            confidence=0.80, relationship="supports",
+            node_id="s1",
+            node_text="Support 1",
+            confidence=0.80,
+            relationship="supports",
         )
 
         result = engine._compute_verdict(
@@ -1055,12 +1110,16 @@ class TestVerdictTiebreaker:
         engine = VerificationEngine(graph)
 
         contra1 = SourceEvidence(
-            node_id="c1", node_text="Contra 1",
-            confidence=0.85, relationship="contradicts",
+            node_id="c1",
+            node_text="Contra 1",
+            confidence=0.85,
+            relationship="contradicts",
         )
         support1 = SourceEvidence(
-            node_id="s1", node_text="Support 1",
-            confidence=0.70, relationship="supports",
+            node_id="s1",
+            node_text="Support 1",
+            confidence=0.70,
+            relationship="supports",
         )
 
         result = engine._compute_verdict(
@@ -1076,6 +1135,7 @@ class TestVerdictTiebreaker:
 # ------------------------------------------------------------------
 # Unit tests: Source quality weighting (Step 14+)
 # ------------------------------------------------------------------
+
 
 class TestSourceQualityWeighting:
     def test_get_source_quality_with_sources(self):

@@ -10,6 +10,7 @@ Run with: pytest tests/test_calibration_heuristic.py --run-calibration
 
 import os
 import statistics
+
 import numpy as np
 import pytest
 
@@ -21,9 +22,11 @@ def _cosine_sim(a, b):
     dot = np.dot(a, b)
     norm = np.linalg.norm(a) * np.linalg.norm(b)
     return dot / norm if norm > 0 else 0.0
-from src.core.node import KnowledgeNode, NodeType
+
+
 from src.core.dependency_detection import DependencyDetector, RelationType
-from src.core.metrics import load_jsonl, confusion_matrix
+from src.core.metrics import load_jsonl
+from src.core.node import KnowledgeNode, NodeType
 
 pytestmark = pytest.mark.calibration
 
@@ -32,6 +35,7 @@ FEVER_PATH = os.path.join("data", "calibration", "fever_subset.jsonl")
 
 
 # ── Shared fixtures ─────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="module")
 def embed():
@@ -70,15 +74,14 @@ def scitail_similarities(scitail, embed):
 
 # ── Embedding Similarity Tests ──────────────────────────────────────────
 
-class TestEmbeddingSimilarity:
 
+class TestEmbeddingSimilarity:
     def test_entails_higher_than_neutral(self, scitail_similarities):
         """ENTAILS pairs should have higher mean similarity than NEUTRAL."""
         entails = [r["sim"] for r in scitail_similarities if r["label"] == "entails"]
         neutrals = [r["sim"] for r in scitail_similarities if r["label"] == "neutral"]
         assert statistics.mean(entails) > statistics.mean(neutrals), (
-            f"ENTAILS mean ({statistics.mean(entails):.3f}) should be > "
-            f"NEUTRAL mean ({statistics.mean(neutrals):.3f})"
+            f"ENTAILS mean ({statistics.mean(entails):.3f}) should be > NEUTRAL mean ({statistics.mean(neutrals):.3f})"
         )
 
     def test_entails_median_above_threshold(self, scitail_similarities):
@@ -110,8 +113,8 @@ class TestEmbeddingSimilarity:
 
 # ── Heuristic Contradiction Tests ───────────────────────────────────────
 
-class TestHeuristicContradiction:
 
+class TestHeuristicContradiction:
     def test_heuristic_detects_some_refutations(self, fever, embed):
         """Heuristic contradiction scorer should detect at least some REFUTES pairs."""
         refutes = [r for r in fever if r["label"] == "REFUTES"]
@@ -143,15 +146,13 @@ class TestHeuristicContradiction:
 
         fp_rate = false_positives / len(supports) if supports else 0
         # Allow up to 30% false positive rate (heuristic is noisy)
-        assert fp_rate < 0.30, (
-            f"Heuristic false positive rate {fp_rate:.1%} on SUPPORTS is too high"
-        )
+        assert fp_rate < 0.30, f"Heuristic false positive rate {fp_rate:.1%} on SUPPORTS is too high"
 
 
 # ── Dependency Classification Tests ─────────────────────────────────────
 
-class TestDependencyClassification:
 
+class TestDependencyClassification:
     def test_entails_detected_as_related(self, scitail, embed):
         """Most ENTAILS pairs should be classified as some relationship."""
         detector = DependencyDetector()
@@ -160,10 +161,8 @@ class TestDependencyClassification:
         entails_pairs = [p for p in scitail if p["label"] == "entails"]
 
         for pair in entails_pairs[:50]:  # Subset for speed
-            node_a = KnowledgeNode(text=pair["premise"], node_type=NodeType.FACT,
-                                   confidence=0.8, domain="science")
-            node_b = KnowledgeNode(text=pair["hypothesis"], node_type=NodeType.FACT,
-                                   confidence=0.8, domain="science")
+            node_a = KnowledgeNode(text=pair["premise"], node_type=NodeType.FACT, confidence=0.8, domain="science")
+            node_b = KnowledgeNode(text=pair["hypothesis"], node_type=NodeType.FACT, confidence=0.8, domain="science")
 
             vec_a = embed.embed_text(pair["premise"])
             vec_b = embed.embed_text(pair["hypothesis"])
@@ -175,9 +174,7 @@ class TestDependencyClassification:
 
         detect_rate = detected / len(entails_pairs[:50])
         # At least 30% of entails pairs should be detected as related
-        assert detect_rate >= 0.30, (
-            f"Only {detect_rate:.1%} of ENTAILS pairs classified as related (need >= 30%)"
-        )
+        assert detect_rate >= 0.30, f"Only {detect_rate:.1%} of ENTAILS pairs classified as related (need >= 30%)"
 
     def test_neutral_not_over_classified(self, scitail, embed):
         """NEUTRAL pairs: false-related rate should be reduced with calibrated thresholds.
@@ -192,10 +189,8 @@ class TestDependencyClassification:
         neutral_pairs = [p for p in scitail if p["label"] == "neutral"]
 
         for pair in neutral_pairs[:50]:  # Subset for speed
-            node_a = KnowledgeNode(text=pair["premise"], node_type=NodeType.FACT,
-                                   confidence=0.8, domain="science")
-            node_b = KnowledgeNode(text=pair["hypothesis"], node_type=NodeType.FACT,
-                                   confidence=0.8, domain="science")
+            node_a = KnowledgeNode(text=pair["premise"], node_type=NodeType.FACT, confidence=0.8, domain="science")
+            node_b = KnowledgeNode(text=pair["hypothesis"], node_type=NodeType.FACT, confidence=0.8, domain="science")
 
             vec_a = embed.embed_text(pair["premise"])
             vec_b = embed.embed_text(pair["hypothesis"])
@@ -207,9 +202,7 @@ class TestDependencyClassification:
 
         fp_rate = false_related / len(neutral_pairs[:50])
         # With tightened thresholds, false positive rate should be <= 80%
-        assert fp_rate <= 0.80, (
-            f"False related rate {fp_rate:.1%} on NEUTRAL is too high (need <= 80%)"
-        )
+        assert fp_rate <= 0.80, f"False related rate {fp_rate:.1%} on NEUTRAL is too high (need <= 80%)"
 
     def test_entails_not_classified_as_contradicts(self, scitail, embed):
         """ENTAILS pairs should NOT be classified as CONTRADICTS."""
@@ -219,10 +212,8 @@ class TestDependencyClassification:
         entails_pairs = [p for p in scitail if p["label"] == "entails"]
 
         for pair in entails_pairs[:50]:
-            node_a = KnowledgeNode(text=pair["premise"], node_type=NodeType.FACT,
-                                   confidence=0.8, domain="science")
-            node_b = KnowledgeNode(text=pair["hypothesis"], node_type=NodeType.FACT,
-                                   confidence=0.8, domain="science")
+            node_a = KnowledgeNode(text=pair["premise"], node_type=NodeType.FACT, confidence=0.8, domain="science")
+            node_b = KnowledgeNode(text=pair["hypothesis"], node_type=NodeType.FACT, confidence=0.8, domain="science")
 
             vec_a = embed.embed_text(pair["premise"])
             vec_b = embed.embed_text(pair["hypothesis"])
@@ -234,9 +225,7 @@ class TestDependencyClassification:
 
         # No more than 10% should be misclassified as contradictions
         rate = contradicts_count / len(entails_pairs[:50])
-        assert rate < 0.10, (
-            f"{rate:.1%} of ENTAILS pairs classified as CONTRADICTS (need < 10%)"
-        )
+        assert rate < 0.10, f"{rate:.1%} of ENTAILS pairs classified as CONTRADICTS (need < 10%)"
 
     def test_supports_is_most_common_for_entails(self, scitail, embed):
         """For ENTAILS pairs that are detected, SUPPORTS or ELABORATES should dominate."""
@@ -246,10 +235,8 @@ class TestDependencyClassification:
         entails_pairs = [p for p in scitail if p["label"] == "entails"]
 
         for pair in entails_pairs[:50]:
-            node_a = KnowledgeNode(text=pair["premise"], node_type=NodeType.FACT,
-                                   confidence=0.8, domain="science")
-            node_b = KnowledgeNode(text=pair["hypothesis"], node_type=NodeType.FACT,
-                                   confidence=0.8, domain="science")
+            node_a = KnowledgeNode(text=pair["premise"], node_type=NodeType.FACT, confidence=0.8, domain="science")
+            node_b = KnowledgeNode(text=pair["hypothesis"], node_type=NodeType.FACT, confidence=0.8, domain="science")
 
             vec_a = embed.embed_text(pair["premise"])
             vec_b = embed.embed_text(pair["hypothesis"])
@@ -261,10 +248,11 @@ class TestDependencyClassification:
                 rel_counts[rel_name] = rel_counts.get(rel_name, 0) + 1
 
         if rel_counts:
-            positive_rels = rel_counts.get("SUPPORTS", 0) + rel_counts.get("ELABORATES", 0) + rel_counts.get("DEPENDS_ON", 0)
+            positive_rels = (
+                rel_counts.get("SUPPORTS", 0) + rel_counts.get("ELABORATES", 0) + rel_counts.get("DEPENDS_ON", 0)
+            )
             total_detected = sum(rel_counts.values())
             # At least 60% of detected relationships should be positive
             assert positive_rels / total_detected >= 0.60, (
-                f"Only {positive_rels / total_detected:.1%} positive relations, "
-                f"distribution: {rel_counts}"
+                f"Only {positive_rels / total_detected:.1%} positive relations, distribution: {rel_counts}"
             )

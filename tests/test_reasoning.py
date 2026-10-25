@@ -19,37 +19,46 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from core.node import KnowledgeNode, NodeType, Source, Derivation
 from core.graph import KnowledgeGraph
-from core.confidence import ConfidenceEngine
+from core.node import Derivation, KnowledgeNode, NodeType, Source
 from core.reasoning import (
-    ReasoningEngine,
-    ReasoningChain,
+    HypothesisResult,
     InferenceStrategy,
     QueryResult,
-    HypothesisResult,
+    ReasoningEngine,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _linear_chain_graph():
     """Build a linear chain:  A -> B -> C -> D"""
     graph = KnowledgeGraph()
 
-    a = KnowledgeNode(text="Water is H2O", confidence=0.95, domain="chemistry",
-                      node_type=NodeType.FACT)
-    b = KnowledgeNode(text="H2O boils at 100C", confidence=0.90, domain="chemistry",
-                      predecessor_nodes=[a.id],
-                      derivation=Derivation(method="inferred", inference_depth=1, derivation_type="chain"))
-    c = KnowledgeNode(text="Boiling produces steam", confidence=0.85, domain="chemistry",
-                      predecessor_nodes=[b.id],
-                      derivation=Derivation(method="inferred", inference_depth=2, derivation_type="chain"))
-    d = KnowledgeNode(text="Steam can drive turbines", confidence=0.80, domain="engineering",
-                      predecessor_nodes=[c.id],
-                      derivation=Derivation(method="inferred", inference_depth=3, derivation_type="chain"))
+    a = KnowledgeNode(text="Water is H2O", confidence=0.95, domain="chemistry", node_type=NodeType.FACT)
+    b = KnowledgeNode(
+        text="H2O boils at 100C",
+        confidence=0.90,
+        domain="chemistry",
+        predecessor_nodes=[a.id],
+        derivation=Derivation(method="inferred", inference_depth=1, derivation_type="chain"),
+    )
+    c = KnowledgeNode(
+        text="Boiling produces steam",
+        confidence=0.85,
+        domain="chemistry",
+        predecessor_nodes=[b.id],
+        derivation=Derivation(method="inferred", inference_depth=2, derivation_type="chain"),
+    )
+    d = KnowledgeNode(
+        text="Steam can drive turbines",
+        confidence=0.80,
+        domain="engineering",
+        predecessor_nodes=[c.id],
+        derivation=Derivation(method="inferred", inference_depth=3, derivation_type="chain"),
+    )
 
     for n in [a, b, c, d]:
         graph.add_node(n)
@@ -67,12 +76,20 @@ def _branching_graph():
 
     a = KnowledgeNode(text="Hydrogen is flammable", confidence=0.95, domain="chemistry")
     b = KnowledgeNode(text="Oxygen supports combustion", confidence=0.90, domain="chemistry")
-    c = KnowledgeNode(text="Water forms when hydrogen burns in oxygen", confidence=0.85,
-                      domain="chemistry", predecessor_nodes=[a.id, b.id],
-                      derivation=Derivation(method="inferred", derivation_type="convergence"))
-    d = KnowledgeNode(text="The reaction releases energy", confidence=0.80,
-                      domain="chemistry", predecessor_nodes=[c.id],
-                      derivation=Derivation(method="inferred", derivation_type="chain"))
+    c = KnowledgeNode(
+        text="Water forms when hydrogen burns in oxygen",
+        confidence=0.85,
+        domain="chemistry",
+        predecessor_nodes=[a.id, b.id],
+        derivation=Derivation(method="inferred", derivation_type="convergence"),
+    )
+    d = KnowledgeNode(
+        text="The reaction releases energy",
+        confidence=0.80,
+        domain="chemistry",
+        predecessor_nodes=[c.id],
+        derivation=Derivation(method="inferred", derivation_type="chain"),
+    )
 
     for n in [a, b, c, d]:
         graph.add_node(n)
@@ -85,8 +102,7 @@ def _contradiction_graph():
     graph = KnowledgeGraph()
 
     a = KnowledgeNode(text="Water boils at 100C at sea level", confidence=0.95, domain="chemistry")
-    b = KnowledgeNode(text="Water does not boil at 100C at high altitude", confidence=0.90,
-                      domain="chemistry")
+    b = KnowledgeNode(text="Water does not boil at 100C at high altitude", confidence=0.90, domain="chemistry")
     graph.add_node(a)
     graph.add_node(b)
     graph.add_contradiction(a.id, b.id)
@@ -97,6 +113,7 @@ def _contradiction_graph():
 # ---------------------------------------------------------------------------
 # Tests: Forward chaining
 # ---------------------------------------------------------------------------
+
 
 def test_forward_chain_linear():
     """Forward chaining through a linear graph finds all paths."""
@@ -166,6 +183,7 @@ def test_forward_chain_nonexistent_node():
 # Tests: Backward chaining
 # ---------------------------------------------------------------------------
 
+
 def test_backward_chain_linear():
     """Backward chaining finds the evidence chain to a conclusion."""
     graph, a, b, c, d = _linear_chain_graph()
@@ -214,6 +232,7 @@ def test_backward_chain_root_node():
 # Tests: Chain confidence
 # ---------------------------------------------------------------------------
 
+
 def test_chain_confidence_weakest_link():
     """Weakest-link strategy uses min confidence."""
     engine = ReasoningEngine(inference_strategy=InferenceStrategy.WEAKEST_LINK)
@@ -256,6 +275,7 @@ def test_chain_confidence_average():
 # ---------------------------------------------------------------------------
 # Tests: Query answering
 # ---------------------------------------------------------------------------
+
 
 def test_query_keyword_fallback():
     """Query answering works with keyword matching when no embedding engine."""
@@ -315,6 +335,7 @@ def test_query_with_embeddings():
 # Tests: Hypothesis testing
 # ---------------------------------------------------------------------------
 
+
 def test_hypothesis_supported():
     """A hypothesis consistent with the graph is supported."""
     graph, a, b, c, d = _linear_chain_graph()
@@ -368,6 +389,7 @@ def test_hypothesis_explanation():
 # Tests: Explanation
 # ---------------------------------------------------------------------------
 
+
 def test_explain_node_root():
     """Explaining a root node shows its sources and confidence."""
     graph, a, b, c, d = _linear_chain_graph()
@@ -415,6 +437,7 @@ def test_explain_missing_node():
 # ---------------------------------------------------------------------------
 # Tests: Edge cases
 # ---------------------------------------------------------------------------
+
 
 def test_empty_graph():
     """Operations on an empty graph don't crash."""
@@ -479,6 +502,7 @@ def test_build_explanation_format():
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
+
 
 def run_all_tests():
     print("\nRunning reasoning engine tests...\n")

@@ -1,5 +1,5 @@
 """
-FastAPI application for Engram AI.
+FastAPI application for Verinode.
 
 Run with:
     python run_server.py
@@ -9,7 +9,7 @@ Run with:
 
 import os
 from contextlib import asynccontextmanager
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -17,16 +17,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .state import AppState
 import src.api.state as state_mod
-from .routes import graph, nodes, ingest, query, verification, memory, maintenance
+
+from .routes import graph, ingest, maintenance, memory, nodes, query, verification
+from .state import AppState
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup: load graph. Shutdown: close connections."""
-    graph_path = os.environ.get("ENGRAM_GRAPH", "engram_graph.db")
-    model = os.environ.get("ENGRAM_MODEL", "qwen3:14b")
+    graph_path = os.environ.get("VERINODE_GRAPH", "verinode_graph.db")
+    model = os.environ.get("VERINODE_MODEL", "qwen3:14b")
 
     state_mod.app_state = AppState(
         graph_path=graph_path,
@@ -34,25 +35,25 @@ async def lifespan(app: FastAPI):
     )
     state_mod.app_state.load_graph()
 
-    print(f"[Engram] Loaded graph from: {graph_path}")
-    print(f"[Engram] Graph has {len(state_mod.app_state.graph)} nodes")
-    print(f"[Engram] Model: {model}")
+    print(f"[Verinode] Loaded graph from: {graph_path}")
+    print(f"[Verinode] Graph has {len(state_mod.app_state.graph)} nodes")
+    print(f"[Verinode] Model: {model}")
 
     yield
 
     # Shutdown
     if hasattr(state_mod.app_state.graph, "close"):
         state_mod.app_state.graph.close()
-    print("[Engram] Shutdown complete.")
+    print("[Verinode] Shutdown complete.")
 
 
 try:
-    _version = version("engram-ai")
+    _version = version("verinode")
 except PackageNotFoundError:
     _version = "0.1.0"
 
 app = FastAPI(
-    title="Engram AI",
+    title="Verinode",
     description="Knowledge graph with confidence tracking, provenance, and truth verification",
     version=_version,
     lifespan=lifespan,
@@ -62,8 +63,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",   # Vite dev server
-        "http://localhost:3000",   # Alternative React port
+        "http://localhost:5173",  # Vite dev server
+        "http://localhost:3000",  # Alternative React port
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
     ],

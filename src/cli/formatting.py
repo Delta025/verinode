@@ -1,19 +1,18 @@
 """
-Rich-based output formatters for the Engram CLI.
+Rich-based output formatters for the Verinode CLI.
 
 Provides coloured tables, panels, and tree views for
 knowledge graph data: nodes, statistics, anomalies,
 ingestion results, query answers, and reasoning chains.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List
 
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-from rich.tree import Tree
-from rich.text import Text
 from rich import box
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
 
 # ---------------------------------------------------------------------------
 # Console singleton
@@ -25,6 +24,7 @@ console = Console()
 # ---------------------------------------------------------------------------
 # Colour helpers
 # ---------------------------------------------------------------------------
+
 
 def confidence_color(value: float) -> str:
     """Return a rich colour tag string for a confidence value."""
@@ -70,6 +70,7 @@ def action_style(action: str) -> str:
 # Node ID helpers
 # ---------------------------------------------------------------------------
 
+
 def short_id(node_id: str) -> str:
     """Return the first 8 characters of a UUID."""
     return node_id[:8]
@@ -95,14 +96,14 @@ def resolve_node_id(graph, prefix: str) -> str:
         raise click.BadParameter(f"No node found matching '{prefix}'")
     else:
         raise click.BadParameter(
-            f"Ambiguous prefix '{prefix}' matches {len(matches)} nodes: "
-            + ", ".join(short_id(m) for m in matches[:5])
+            f"Ambiguous prefix '{prefix}' matches {len(matches)} nodes: " + ", ".join(short_id(m) for m in matches[:5])
         )
 
 
 # ---------------------------------------------------------------------------
 # Formatters
 # ---------------------------------------------------------------------------
+
 
 def format_node_table(
     nodes: list,
@@ -143,14 +144,10 @@ def format_stats(stats: Dict[str, Any]) -> Panel:
     lines = []
     lines.append(f"[bold]Total nodes:[/bold] {stats['total_nodes']}")
     avg = stats.get("avg_confidence", 0)
-    lines.append(
-        f"[bold]Avg confidence:[/bold] [{confidence_color(avg)}]{avg:.3f}[/]"
-    )
+    lines.append(f"[bold]Avg confidence:[/bold] [{confidence_color(avg)}]{avg:.3f}[/]")
     conflicts = stats.get("nodes_with_conflicts", 0)
     conflict_style = "red" if conflicts > 0 else "green"
-    lines.append(
-        f"[bold]Nodes with conflicts:[/bold] [{conflict_style}]{conflicts}[/]"
-    )
+    lines.append(f"[bold]Nodes with conflicts:[/bold] [{conflict_style}]{conflicts}[/]")
 
     # Domain breakdown
     domains = stats.get("nodes_by_domain", {})
@@ -227,19 +224,15 @@ def format_ingestion_result(result) -> Panel:
 
     content = table
     summary = result.summary
-    return Panel(content, title=f"Ingestion Result", subtitle=summary, box=box.ROUNDED)
+    return Panel(content, title="Ingestion Result", subtitle=summary, box=box.ROUNDED)
 
 
 def format_query_result(result, show_chains: bool = False) -> Panel:
     """Format a QueryResult as a Rich Panel."""
     lines = []
     conf_col = confidence_color(result.confidence)
-    lines.append(
-        f"[bold]Answer:[/bold] {result.answer_text}"
-    )
-    lines.append(
-        f"[bold]Confidence:[/bold] [{conf_col}]{result.confidence:.3f}[/]"
-    )
+    lines.append(f"[bold]Answer:[/bold] {result.answer_text}")
+    lines.append(f"[bold]Confidence:[/bold] [{conf_col}]{result.confidence:.3f}[/]")
 
     if result.answer_node_id:
         lines.append(f"[dim]Node: {short_id(result.answer_node_id)}[/dim]")
@@ -249,17 +242,11 @@ def format_query_result(result, show_chains: bool = False) -> Panel:
         lines.append(f"[bold]Supporting chains ({len(result.supporting_chains)}):[/bold]")
         for i, chain in enumerate(result.supporting_chains[:5]):
             chain_conf = confidence_color(chain.conclusion_confidence)
-            lines.append(
-                f"  Chain {i+1} "
-                f"[{chain_conf}](conf={chain.conclusion_confidence:.3f})[/]:"
-            )
+            lines.append(f"  Chain {i + 1} [{chain_conf}](conf={chain.conclusion_confidence:.3f})[/]:")
             for step in chain.steps:
                 marker = ">>" if step.step_type == "conclusion" else "  "
                 s_col = confidence_color(step.confidence)
-                lines.append(
-                    f"    {marker} {step.node_text[:50]} "
-                    f"[{s_col}][{step.confidence:.2f}][/]"
-                )
+                lines.append(f"    {marker} {step.node_text[:50]} [{s_col}][{step.confidence:.2f}][/]")
 
     return Panel(
         "\n".join(lines),
@@ -286,9 +273,7 @@ def format_hypothesis_result(result, show_evidence: bool = False) -> Panel:
 
     sup_count = len(result.supporting_evidence)
     con_count = len(result.contradicting_evidence)
-    lines.append(
-        f"[bold]Evidence:[/bold] {sup_count} supporting, {con_count} contradicting"
-    )
+    lines.append(f"[bold]Evidence:[/bold] {sup_count} supporting, {con_count} contradicting")
 
     if show_evidence:
         if result.supporting_evidence:
@@ -297,18 +282,14 @@ def format_hypothesis_result(result, show_evidence: bool = False) -> Panel:
             for chain in result.supporting_evidence[:3]:
                 for step in chain.steps:
                     s_col = confidence_color(step.confidence)
-                    lines.append(
-                        f"  + {step.node_text[:55]} [{s_col}][{step.confidence:.2f}][/]"
-                    )
+                    lines.append(f"  + {step.node_text[:55]} [{s_col}][{step.confidence:.2f}][/]")
         if result.contradicting_evidence:
             lines.append("")
             lines.append("[red]Contradicting evidence:[/red]")
             for chain in result.contradicting_evidence[:3]:
                 for step in chain.steps:
                     s_col = confidence_color(step.confidence)
-                    lines.append(
-                        f"  - {step.node_text[:55]} [{s_col}][{step.confidence:.2f}][/]"
-                    )
+                    lines.append(f"  - {step.node_text[:55]} [{s_col}][{step.confidence:.2f}][/]")
 
     return Panel(
         "\n".join(lines),
@@ -326,9 +307,7 @@ def format_node_detail(node, graph) -> Panel:
 
     conf_col = confidence_color(node.confidence)
     lines.append(f"[bold]Confidence:[/bold] [{conf_col}]{node.confidence:.3f}[/]")
-    lines.append(
-        f"[bold]Bounds:[/bold] [{node.confidence_bounds[0]:.3f}, {node.confidence_bounds[1]:.3f}]"
-    )
+    lines.append(f"[bold]Bounds:[/bold] [{node.confidence_bounds[0]:.3f}, {node.confidence_bounds[1]:.3f}]")
 
     st_style = status_style(node.status.value)
     lines.append(f"[bold]Status:[/bold] [{st_style}]{node.status.value}[/]")
@@ -338,9 +317,7 @@ def format_node_detail(node, graph) -> Panel:
     if node.sources:
         lines.append(f"\n[bold]Sources ({len(node.sources)}):[/bold]")
         for s in node.sources:
-            lines.append(
-                f"  - {s} [dim](quality: {s.quality_score:.2f})[/dim]"
-            )
+            lines.append(f"  - {s} [dim](quality: {s.quality_score:.2f})[/dim]")
 
     # Derivation
     lines.append(f"\n[bold]Derivation:[/bold] {node.derivation.method}")
@@ -356,9 +333,7 @@ def format_node_detail(node, graph) -> Panel:
             pred = graph.get_node(pid)
             if pred:
                 p_col = confidence_color(pred.confidence)
-                lines.append(
-                    f"  - {short_id(pid)} {pred.text[:45]} [{p_col}][{pred.confidence:.2f}][/]"
-                )
+                lines.append(f"  - {short_id(pid)} {pred.text[:45]} [{p_col}][{pred.confidence:.2f}][/]")
             else:
                 lines.append(f"  - {short_id(pid)} [dim](not found)[/dim]")
 
@@ -369,9 +344,7 @@ def format_node_detail(node, graph) -> Panel:
             succ = graph.get_node(sid)
             if succ:
                 s_col = confidence_color(succ.confidence)
-                lines.append(
-                    f"  - {short_id(sid)} {succ.text[:45]} [{s_col}][{succ.confidence:.2f}][/]"
-                )
+                lines.append(f"  - {short_id(sid)} {succ.text[:45]} [{s_col}][{succ.confidence:.2f}][/]")
             else:
                 lines.append(f"  - {short_id(sid)} [dim](not found)[/dim]")
 
@@ -402,9 +375,7 @@ def format_verification_result(result, show_evidence: bool = False) -> Panel:
         "uncertain": ("bold yellow", "UNCERTAIN"),
         "insufficient_evidence": ("dim", "INSUFFICIENT EVIDENCE"),
     }
-    style, label = verdict_styles.get(
-        result.verdict.value, ("dim", result.verdict.value.upper())
-    )
+    style, label = verdict_styles.get(result.verdict.value, ("dim", result.verdict.value.upper()))
 
     lines = []
     lines.append(f"[bold]Verdict:[/bold] [{style}]{label}[/]")
@@ -417,9 +388,7 @@ def format_verification_result(result, show_evidence: bool = False) -> Panel:
 
     sup_count = len(result.supporting_evidence)
     con_count = len(result.contradicting_evidence)
-    lines.append(
-        f"[bold]Evidence:[/bold] {sup_count} supporting, {con_count} contradicting"
-    )
+    lines.append(f"[bold]Evidence:[/bold] {sup_count} supporting, {con_count} contradicting")
     lines.append(f"[bold]Coverage:[/bold] {result.coverage:.0%}")
     lines.append(f"[bold]Candidates checked:[/bold] {result.num_candidates_checked}")
 
@@ -429,9 +398,7 @@ def format_verification_result(result, show_evidence: bool = False) -> Panel:
             lines.append("[green]Supporting evidence:[/green]")
             for ev in result.supporting_evidence[:5]:
                 ev_col = confidence_color(ev.confidence)
-                lines.append(
-                    f"  + {ev.node_text[:55]} [{ev_col}][{ev.confidence:.2f}][/]"
-                )
+                lines.append(f"  + {ev.node_text[:55]} [{ev_col}][{ev.confidence:.2f}][/]")
                 if ev.explanation:
                     lines.append(f"    [dim]{ev.explanation[:60]}[/dim]")
                 if ev.chains:
@@ -442,9 +409,7 @@ def format_verification_result(result, show_evidence: bool = False) -> Panel:
             lines.append("[red]Contradicting evidence:[/red]")
             for ev in result.contradicting_evidence[:5]:
                 ev_col = confidence_color(ev.confidence)
-                lines.append(
-                    f"  - {ev.node_text[:55]} [{ev_col}][{ev.confidence:.2f}][/]"
-                )
+                lines.append(f"  - {ev.node_text[:55]} [{ev_col}][{ev.confidence:.2f}][/]")
                 if ev.explanation:
                     lines.append(f"    [dim]{ev.explanation[:60]}[/dim]")
                 if ev.chains:
@@ -464,18 +429,16 @@ def format_retraction_result(sim) -> Panel:
     lines.append(f"[bold]Fact:[/bold] {sim.retracted_node_text}")
 
     conf_col = confidence_color(sim.original_confidence)
-    lines.append(
-        f"[bold]Original confidence:[/bold] [{conf_col}]{sim.original_confidence:.3f}[/]"
-    )
+    lines.append(f"[bold]Original confidence:[/bold] [{conf_col}]{sim.original_confidence:.3f}[/]")
 
-    lines.append(f"\n[bold]Impact summary:[/bold]")
+    lines.append("\n[bold]Impact summary:[/bold]")
     lines.append(f"  Affected nodes: {sim.total_affected}")
     lines.append(f"  Max confidence drop: {sim.max_confidence_drop:+.3f}")
     lines.append(f"  Avg confidence drop: {sim.avg_confidence_drop:+.3f}")
     lines.append(f"  Orphaned nodes: {sim.orphaned_nodes}")
 
     if sim.affected_nodes:
-        lines.append(f"\n[bold]Affected nodes (top 10):[/bold]")
+        lines.append("\n[bold]Affected nodes (top 10):[/bold]")
 
         table = Table(box=box.SIMPLE, show_header=True, pad_edge=False)
         table.add_column("Node", no_wrap=True, ratio=1)
@@ -526,9 +489,7 @@ def format_memory_result(result) -> Panel:
         lines.append(f"\n[bold]Facts ({len(result.facts)}):[/bold]")
         for i, fact in enumerate(result.facts[:10]):
             f_col = confidence_color(fact.confidence)
-            lines.append(
-                f"  {i+1}. {fact.text[:55]} [{f_col}][{fact.confidence:.2f}][/] ({fact.domain})"
-            )
+            lines.append(f"  {i + 1}. {fact.text[:55]} [{f_col}][{fact.confidence:.2f}][/] ({fact.domain})")
             if fact.sources:
                 src_titles = [s.get("title", "?") for s in fact.sources[:2]]
                 lines.append(f"     [dim]Sources: {', '.join(src_titles)}[/dim]")
@@ -573,7 +534,7 @@ def format_import_result(stats: Dict[str, Any]) -> Panel:
 
 def format_merge_result(stats) -> Panel:
     """Format merge_graphs() statistics as a Rich Panel."""
-    d = stats.to_dict() if hasattr(stats, 'to_dict') else stats
+    d = stats.to_dict() if hasattr(stats, "to_dict") else stats
     lines = []
     lines.append(f"[bold]Nodes from graph A:[/bold] {d.get('nodes_from_a', 0)}")
     lines.append(f"[bold green]Added from B:[/bold green] {d.get('nodes_from_b_added', 0)}")
@@ -608,9 +569,7 @@ def format_confidence_trace(trace: Dict[str, Any]) -> Panel:
     if source_nodes:
         min_c = trace.get("min_source_confidence")
         max_c = trace.get("max_source_confidence")
-        lines.append(
-            f"\n[bold]Root sources ({len(source_nodes)}):[/bold]"
-        )
+        lines.append(f"\n[bold]Root sources ({len(source_nodes)}):[/bold]")
         if min_c is not None:
             lines.append(
                 f"  Confidence range: "
@@ -619,10 +578,7 @@ def format_confidence_trace(trace: Dict[str, Any]) -> Panel:
             )
         for sn in source_nodes:
             s_col = confidence_color(sn["confidence"])
-            lines.append(
-                f"  - {short_id(sn['id'])} {sn['text'][:45]} "
-                f"[{s_col}][{sn['confidence']:.2f}][/]"
-            )
+            lines.append(f"  - {short_id(sn['id'])} {sn['text'][:45]} [{s_col}][{sn['confidence']:.2f}][/]")
             for src_str in sn.get("sources", []):
                 lines.append(f"    [dim]{src_str}[/dim]")
     else:
@@ -634,6 +590,7 @@ def format_confidence_trace(trace: Dict[str, Any]) -> Panel:
 # ---------------------------------------------------------------------------
 # Neuroplasticity maintenance
 # ---------------------------------------------------------------------------
+
 
 def severity_style(severity: str) -> str:
     """Return a rich style string for a doubt flag severity level."""
@@ -647,8 +604,7 @@ def format_maintenance_report(report) -> Panel:
     lines.append(f"[bold]Nodes examined:[/bold] {report.nodes_examined}")
     lines.append("")
     lines.append(
-        f"[bold]Decay:[/bold] {report.nodes_decayed} node(s), "
-        f"total confidence lost: {report.total_decay_amount:.4f}"
+        f"[bold]Decay:[/bold] {report.nodes_decayed} node(s), total confidence lost: {report.total_decay_amount:.4f}"
     )
     lines.append(
         f"[bold]Strengthened:[/bold] {report.nodes_strengthened} node(s), "

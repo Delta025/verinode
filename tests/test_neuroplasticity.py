@@ -3,24 +3,22 @@ Tests for the NeuroplasticityEngine: staleness decay, pathway strengthening,
 doubt flagging, and combined maintenance.
 """
 
-import pytest
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock
 
-from src.core.graph import KnowledgeGraph
-from src.core.node import KnowledgeNode, NodeType, NodeStatus, Source
-from src.core.neuroplasticity import (
-    NeuroplasticityEngine,
-    MaintenanceReport,
-    DecayResult,
-    StrengthResult,
-    DoubtFlag,
-)
+import pytest
 
+from src.core.graph import KnowledgeGraph
+from src.core.neuroplasticity import (
+    MaintenanceReport,
+    NeuroplasticityEngine,
+)
+from src.core.node import KnowledgeNode, NodeStatus, Source
 
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
+
 
 def make_node(
     text,
@@ -119,6 +117,7 @@ def build_test_graph(now=None):
 # ------------------------------------------------------------------
 # Unit tests: Staleness decay
 # ------------------------------------------------------------------
+
 
 class TestStalenessDecay:
     def test_no_decay_within_grace_period(self):
@@ -283,6 +282,7 @@ class TestStalenessDecay:
 # Unit tests: Pathway strengthening
 # ------------------------------------------------------------------
 
+
 class TestPathwayStrengthening:
     def test_no_boost_below_threshold(self):
         """Nodes below access threshold should not be boosted."""
@@ -364,9 +364,7 @@ class TestPathwayStrengthening:
             strengthen_boost_per_access=0.005,
             strengthen_validation_boost=0.02,
         )
-        result = engine.strengthen_pathway(
-            graph, "validated", is_validation=True
-        )
+        result = engine.strengthen_pathway(graph, "validated", is_validation=True)
 
         assert result is not None
         # Access boost: 3 excess * 0.005 = 0.015
@@ -431,6 +429,7 @@ class TestPathwayStrengthening:
 # ------------------------------------------------------------------
 # Unit tests: Doubt flagging
 # ------------------------------------------------------------------
+
 
 class TestDoubtFlagging:
     def test_flag_conflicted_nodes(self):
@@ -527,14 +526,19 @@ class TestDoubtFlagging:
         graph.add_node(make_node("Low conf", confidence=0.10, node_id="low"))
 
         # Stale (low severity)
-        graph.add_node(make_node(
-            "Stale fact", confidence=0.80, node_id="stale",
-            last_validated=now - timedelta(days=200),
-        ))
+        graph.add_node(
+            make_node(
+                "Stale fact",
+                confidence=0.80,
+                node_id="stale",
+                last_validated=now - timedelta(days=200),
+            )
+        )
 
         # Many conflicts (high severity)
-        n_conf = make_node("Conflicted", confidence=0.50, node_id="many-conf",
-                           conflicts=["low", "stale", "many-conf-2"])
+        n_conf = make_node(
+            "Conflicted", confidence=0.50, node_id="many-conf", conflicts=["low", "stale", "many-conf-2"]
+        )
         graph.add_node(n_conf)
         graph.add_node(make_node("Conflict target", confidence=0.50, node_id="many-conf-2"))
 
@@ -575,6 +579,7 @@ class TestDoubtFlagging:
 # ------------------------------------------------------------------
 # Integration tests: Combined maintenance
 # ------------------------------------------------------------------
+
 
 class TestMaintenanceCycle:
     def test_full_maintenance_cycle(self):
@@ -683,6 +688,7 @@ class TestMaintenanceCycle:
 # ------------------------------------------------------------------
 # Unit tests: Corroboration decay
 # ------------------------------------------------------------------
+
 
 class TestCorroborationDecay:
     def test_small_graph_no_penalty(self):
@@ -910,6 +916,7 @@ class TestCorroborationDecay:
 # Edge cases
 # ------------------------------------------------------------------
 
+
 class TestNeuroplasticityEdgeCases:
     def test_decay_with_zero_half_life(self):
         """Zero half-life should cause maximum decay."""
@@ -984,6 +991,7 @@ class TestNeuroplasticityEdgeCases:
 # ------------------------------------------------------------------
 # TestConfidencePropagation — verify propagation calls during maintenance
 # ------------------------------------------------------------------
+
 
 class TestConfidencePropagation:
     """Test that maintenance triggers confidence propagation correctly."""
@@ -1065,6 +1073,7 @@ class TestConfidencePropagation:
 # TestMultipleDoubtFlags — nodes that trigger multiple flag reasons
 # ------------------------------------------------------------------
 
+
 class TestMultipleDoubtFlags:
     """Test nodes that accumulate multiple doubt flag reasons."""
 
@@ -1114,6 +1123,7 @@ class TestMultipleDoubtFlags:
 # TestMaintenanceWithEdges — graphs with predecessor/successor links
 # ------------------------------------------------------------------
 
+
 class TestMaintenanceWithEdges:
     """Test maintenance on graphs with node dependencies."""
 
@@ -1156,7 +1166,7 @@ class TestMaintenanceWithEdges:
 
     def test_strengthening_does_not_affect_edges(self):
         """Strengthening a node should not alter predecessor/successor links."""
-        now = datetime.now()
+        datetime.now()
         graph = KnowledgeGraph()
 
         root = make_node(

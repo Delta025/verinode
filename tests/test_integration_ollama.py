@@ -26,18 +26,19 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from core.fact_extraction import FactExtractionEngine, ExtractionResult, ExtractedFact
-from core.node import KnowledgeNode, NodeType, Source
-
+from core.fact_extraction import ExtractedFact, ExtractionResult, FactExtractionEngine
+from core.node import KnowledgeNode, Source
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _ollama_available() -> bool:
     """Check if Ollama server is reachable."""
     try:
         import ollama
+
         client = ollama.Client()
         client.list()
         return True
@@ -49,6 +50,7 @@ def _model_available(model: str = "qwen2.5:7b") -> bool:
     """Check if a specific model is pulled."""
     try:
         import ollama
+
         client = ollama.Client()
         models = client.list()
         model_names = [m.model for m in models.models]
@@ -62,27 +64,24 @@ def _model_available(model: str = "qwen2.5:7b") -> bool:
 # Integration Tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.integration
 class TestOllamaConnectivity:
     """Test basic Ollama server connectivity."""
 
     def test_server_reachable(self):
         """Ollama server is running and reachable."""
-        assert _ollama_available(), (
-            "Ollama server not reachable. "
-            "Start with: ollama serve"
-        )
+        assert _ollama_available(), "Ollama server not reachable. Start with: ollama serve"
 
     def test_model_available(self):
         """At least one model is available for extraction."""
         assert _ollama_available(), "Ollama server not reachable"
 
         import ollama
+
         client = ollama.Client()
         models = client.list()
-        assert len(models.models) > 0, (
-            "No models pulled. Pull one with: ollama pull qwen2.5:7b"
-        )
+        assert len(models.models) > 0, "No models pulled. Pull one with: ollama pull qwen2.5:7b"
 
 
 @pytest.mark.integration
@@ -97,6 +96,7 @@ class TestOllamaExtraction:
 
         # Use whatever model is available
         import ollama
+
         client = ollama.Client()
         models = client.list()
         if not models.models:
@@ -154,8 +154,7 @@ class TestOllamaExtraction:
         )
 
         nodes = engine.extract_to_nodes(
-            "Iron is a chemical element with symbol Fe. "
-            "It is the most common element on Earth by mass.",
+            "Iron is a chemical element with symbol Fe. It is the most common element on Earth by mass.",
             domain="chemistry",
             source=source,
         )
@@ -181,9 +180,7 @@ class TestOllamaExtraction:
         )
 
         # Should extract at least 2 facts from 3 clear statements
-        assert len(result.facts) >= 2, (
-            f"Expected at least 2 facts from 3 sentences, got {len(result.facts)}"
-        )
+        assert len(result.facts) >= 2, f"Expected at least 2 facts from 3 sentences, got {len(result.facts)}"
 
     def test_extract_empty_input(self, engine):
         """Empty or trivial input produces few or no facts."""
@@ -210,6 +207,7 @@ class TestOllamaEdgeCases:
             pytest.skip("Ollama server not available")
 
         import ollama
+
         client = ollama.Client()
         models = client.list()
         if not models.models:
@@ -237,8 +235,7 @@ class TestOllamaEdgeCases:
     def test_contradictory_claims(self, engine):
         """Extraction handles text with contradictory information."""
         result = engine.extract(
-            "Water boils at 100 degrees Celsius. "
-            "However, at high altitudes water boils at lower temperatures."
+            "Water boils at 100 degrees Celsius. However, at high altitudes water boils at lower temperatures."
         )
 
         assert len(result.facts) >= 1

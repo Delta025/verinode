@@ -5,31 +5,28 @@ Tests cover the LLMMemory facade: query, recall, verify, ingest,
 coverage computation, and serialization helpers.
 """
 
-import pytest
-from unittest.mock import MagicMock, patch
-from dataclasses import dataclass
+from unittest.mock import MagicMock
 
+from src.core.graph import KnowledgeGraph
 from src.core.llm_memory import (
     LLMMemory,
     MemoryFact,
     MemoryQueryResult,
-    MemoryIngestResult,
-    _source_to_dict,
-    _node_to_memory_fact,
     _compute_coverage,
+    _node_to_memory_fact,
+    _source_to_dict,
 )
-from src.core.node import KnowledgeNode, Source, NodeType
-from src.core.graph import KnowledgeGraph
-from src.core.confidence import ConfidenceEngine
+from src.core.node import KnowledgeNode, Source
 from src.core.reasoning import (
-    ReasoningEngine, QueryResult, ReasoningChain, ReasoningStep,
     InferenceStrategy,
+    ReasoningChain,
+    ReasoningStep,
 )
-
 
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
+
 
 def make_node(text, confidence=0.8, domain="chemistry", node_id=None):
     """Create a test node."""
@@ -61,6 +58,7 @@ def build_chemistry_graph():
 # Tests: _compute_coverage
 # ------------------------------------------------------------------
 
+
 class TestComputeCoverage:
     def test_no_facts(self):
         assert _compute_coverage(0, 0.0) == "none"
@@ -85,6 +83,7 @@ class TestComputeCoverage:
 # Tests: _source_to_dict
 # ------------------------------------------------------------------
 
+
 class TestSourceToDict:
     def test_basic(self):
         src = Source(source_type="textbook", title="Chem 101", quality_score=0.9)
@@ -104,6 +103,7 @@ class TestSourceToDict:
 # ------------------------------------------------------------------
 # Tests: _node_to_memory_fact
 # ------------------------------------------------------------------
+
 
 class TestNodeToMemoryFact:
     def test_basic_conversion(self):
@@ -135,6 +135,7 @@ class TestNodeToMemoryFact:
 # ------------------------------------------------------------------
 # Tests: LLMMemory.query()
 # ------------------------------------------------------------------
+
 
 class TestQuery:
     def test_empty_graph(self):
@@ -233,6 +234,7 @@ class TestQuery:
 # Tests: LLMMemory.recall()
 # ------------------------------------------------------------------
 
+
 class TestRecall:
     def test_empty_graph(self):
         graph = KnowledgeGraph()
@@ -296,6 +298,7 @@ class TestRecall:
 # Tests: LLMMemory.verify()
 # ------------------------------------------------------------------
 
+
 class TestVerify:
     def test_no_verification_engine(self):
         graph = KnowledgeGraph()
@@ -309,6 +312,7 @@ class TestVerify:
         mock_ve = MagicMock()
 
         from src.core.verification import Verdict, VerificationResult
+
         mock_ve.verify.return_value = VerificationResult(
             claim="Water boils at 50C",
             verdict=Verdict.CONTRADICTED,
@@ -329,6 +333,7 @@ class TestVerify:
 # Tests: LLMMemory.ingest()
 # ------------------------------------------------------------------
 
+
 class TestIngest:
     def test_no_pipeline(self):
         graph = KnowledgeGraph()
@@ -341,8 +346,9 @@ class TestIngest:
         graph, nodes = build_chemistry_graph()
         mock_pipeline = MagicMock()
 
-        from src.core.pipeline import IngestionResult, IngestionVerdict
         from src.core.fact_extraction import ExtractedFact
+        from src.core.pipeline import IngestionResult, IngestionVerdict
+
         mock_pipeline.ingest.return_value = IngestionResult(
             source_text="Neon is a noble gas",
             extraction_model="qwen3:14b",
@@ -370,8 +376,9 @@ class TestIngest:
         graph, nodes = build_chemistry_graph()
         mock_pipeline = MagicMock()
 
-        from src.core.pipeline import IngestionResult, IngestionVerdict
         from src.core.fact_extraction import ExtractedFact
+        from src.core.pipeline import IngestionResult, IngestionVerdict
+
         mock_pipeline.ingest.return_value = IngestionResult(
             source_text="Water boils at 100C",
             extraction_model="qwen3:14b",
@@ -394,8 +401,9 @@ class TestIngest:
         graph, nodes = build_chemistry_graph()
         mock_pipeline = MagicMock()
 
-        from src.core.pipeline import IngestionResult, IngestionVerdict
         from src.core.fact_extraction import ExtractedFact
+        from src.core.pipeline import IngestionResult, IngestionVerdict
+
         mock_pipeline.ingest.return_value = IngestionResult(
             source_text="Water boils at 50C",
             extraction_model="qwen3:14b",
@@ -419,6 +427,7 @@ class TestIngest:
 # ------------------------------------------------------------------
 # Tests: LLMMemory.to_dict()
 # ------------------------------------------------------------------
+
 
 class TestToDict:
     def test_serialization(self):

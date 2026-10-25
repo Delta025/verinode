@@ -28,7 +28,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null)
 
   // Load Graph state
-  const [graphPath, setGraphPath] = useState('engram_graph.json')
+  const [graphPath, setGraphPath] = useState('verinode_graph.json')
   const [graphLoading, setGraphLoading] = useState(false)
   const [graphResult, setGraphResult] = useState<LoadGraphResponse | null>(null)
   const [graphError, setGraphError] = useState<string | null>(null)
@@ -135,7 +135,7 @@ export default function Dashboard() {
         <form onSubmit={handleLoadGraph} style={styles.graphOpRow}>
           <span style={styles.graphOpLabel}>Load</span>
           <input type="text" value={graphPath} onChange={(e) => setGraphPath(e.target.value)}
-            placeholder="engram_graph.json" style={styles.graphOpInput} />
+            placeholder="verinode_graph.json" style={styles.graphOpInput} />
           <button type="button" className="btn" onClick={() => setBrowseTarget('load')}
             style={styles.browseBtn} title="Browse files">...</button>
           <button type="submit" className="btn btn-primary" disabled={graphLoading || !graphPath.trim()}

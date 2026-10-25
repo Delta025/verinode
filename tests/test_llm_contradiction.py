@@ -28,15 +28,15 @@ import pytest
 
 from core.llm_contradiction import (
     ContradictionChecker,
-    RelevanceResult,
     GeminiContradictionChecker,
+    RelevanceResult,
     create_contradiction_checker,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_checker():
     """Create a ContradictionChecker with a mocked Ollama client."""
@@ -63,19 +63,21 @@ def _mock_response(json_text: str):
 # Ollama relevance tests
 # ---------------------------------------------------------------------------
 
+
 def test_ollama_check_relevance():
     """Ollama ContradictionChecker.check_relevance works correctly."""
     checker = _make_checker()
-    checker._client.chat.return_value = _mock_response(json.dumps({
-        "relationship": "contradicts",
-        "confidence": 0.95,
-        "explanation": "One affirms and the other negates the same claim."
-    }))
-
-    result = checker.check_relevance(
-        "Water is a good solvent",
-        "Water is not a good solvent"
+    checker._client.chat.return_value = _mock_response(
+        json.dumps(
+            {
+                "relationship": "contradicts",
+                "confidence": 0.95,
+                "explanation": "One affirms and the other negates the same claim.",
+            }
+        )
     )
+
+    result = checker.check_relevance("Water is a good solvent", "Water is not a good solvent")
 
     assert result.relationship == "contradicts"
     assert result.confidence == 0.95
@@ -84,16 +86,11 @@ def test_ollama_check_relevance():
 def test_ollama_check_relevance_supports():
     """Ollama ContradictionChecker.check_relevance returns supports."""
     checker = _make_checker()
-    checker._client.chat.return_value = _mock_response(json.dumps({
-        "relationship": "supports",
-        "confidence": 0.92,
-        "explanation": "These statements are consistent."
-    }))
-
-    result = checker.check_relevance(
-        "Water boils at 100 degrees Celsius",
-        "Water boils at 100 degrees C"
+    checker._client.chat.return_value = _mock_response(
+        json.dumps({"relationship": "supports", "confidence": 0.92, "explanation": "These statements are consistent."})
     )
+
+    result = checker.check_relevance("Water boils at 100 degrees Celsius", "Water boils at 100 degrees C")
 
     assert result.relationship == "supports"
 
@@ -101,16 +98,11 @@ def test_ollama_check_relevance_supports():
 def test_ollama_check_relevance_irrelevant():
     """Ollama ContradictionChecker.check_relevance returns irrelevant."""
     checker = _make_checker()
-    checker._client.chat.return_value = _mock_response(json.dumps({
-        "relationship": "irrelevant",
-        "confidence": 0.99,
-        "explanation": "Completely different topics."
-    }))
-
-    result = checker.check_relevance(
-        "Iron is a metal",
-        "Photosynthesis converts sunlight into chemical energy"
+    checker._client.chat.return_value = _mock_response(
+        json.dumps({"relationship": "irrelevant", "confidence": 0.99, "explanation": "Completely different topics."})
     )
+
+    result = checker.check_relevance("Iron is a metal", "Photosynthesis converts sunlight into chemical energy")
 
     assert result.relationship == "irrelevant"
 
@@ -129,6 +121,7 @@ def test_ollama_check_relevance_failure():
 # ---------------------------------------------------------------------------
 # Factory tests
 # ---------------------------------------------------------------------------
+
 
 def test_create_contradiction_checker_success():
     """Factory returns a checker when Ollama is available."""
@@ -157,6 +150,7 @@ def test_create_contradiction_checker_no_ollama():
 # Result dataclass tests
 # ---------------------------------------------------------------------------
 
+
 def test_relevance_result_fields():
     """RelevanceResult has all expected fields."""
     result = RelevanceResult(
@@ -177,6 +171,7 @@ def test_relevance_result_fields():
 # ---------------------------------------------------------------------------
 # Helpers: Gemini
 # ---------------------------------------------------------------------------
+
 
 def _make_gemini_checker():
     """Create a GeminiContradictionChecker with a mocked genai client."""
@@ -202,21 +197,22 @@ def _mock_gemini_response(json_text: str):
 # Tests: Gemini contradiction checker
 # ---------------------------------------------------------------------------
 
+
 class TestGeminiContradictionChecker:
     def test_check_relevance(self):
         """Relevance check works via Gemini."""
         checker = _make_gemini_checker()
         checker._client.models.generate_content.return_value = _mock_gemini_response(
-            json.dumps({
-                "relationship": "contradicts",
-                "confidence": 0.88,
-                "explanation": "Different values.",
-            })
+            json.dumps(
+                {
+                    "relationship": "contradicts",
+                    "confidence": 0.88,
+                    "explanation": "Different values.",
+                }
+            )
         )
 
-        result = checker.check_relevance(
-            "Gold melts at 500C", "Gold melts at 1064C"
-        )
+        result = checker.check_relevance("Gold melts at 500C", "Gold melts at 1064C")
 
         assert result.relationship == "contradicts"
         assert result.confidence == 0.88
@@ -225,11 +221,13 @@ class TestGeminiContradictionChecker:
         """Relevance check can return 'supports'."""
         checker = _make_gemini_checker()
         checker._client.models.generate_content.return_value = _mock_gemini_response(
-            json.dumps({
-                "relationship": "supports",
-                "confidence": 0.95,
-                "explanation": "Consistent statement.",
-            })
+            json.dumps(
+                {
+                    "relationship": "supports",
+                    "confidence": 0.95,
+                    "explanation": "Consistent statement.",
+                }
+            )
         )
 
         result = checker.check_relevance("Water boils at 100C", "Water boils at 100 degrees")
@@ -251,16 +249,16 @@ class TestGeminiContradictionChecker:
         """Batch relevance calls check_relevance for each pair."""
         checker = _make_gemini_checker()
         checker._client.models.generate_content.return_value = _mock_gemini_response(
-            json.dumps({
-                "relationship": "supports",
-                "confidence": 0.9,
-                "explanation": "Consistent.",
-            })
+            json.dumps(
+                {
+                    "relationship": "supports",
+                    "confidence": 0.9,
+                    "explanation": "Consistent.",
+                }
+            )
         )
 
-        results = checker.check_relevance_batch(
-            [("claim1", "knowledge1")], max_workers=1
-        )
+        results = checker.check_relevance_batch([("claim1", "knowledge1")], max_workers=1)
 
         assert len(results) == 1
         assert results[0].relationship == "supports"
@@ -273,29 +271,32 @@ class TestGeminiContradictionChecker:
             with patch.dict("os.environ", {}, clear=False):
                 # Remove the env var if it exists
                 import os
-                old_val = os.environ.pop("ENGRAM_GEMINI_API_KEY", None)
+
+                old_val = os.environ.pop("VERINODE_GEMINI_API_KEY", None)
                 try:
                     with pytest.raises(ValueError, match="API key required"):
                         GeminiContradictionChecker()
                 finally:
                     if old_val is not None:
-                        os.environ["ENGRAM_GEMINI_API_KEY"] = old_val
+                        os.environ["VERINODE_GEMINI_API_KEY"] = old_val
 
     def test_gemini_call_format(self):
         """Verify the Gemini API is called with correct parameters."""
         checker = _make_gemini_checker()
         checker._client.models.generate_content.return_value = _mock_gemini_response(
-            json.dumps({
-                "relationship": "irrelevant",
-                "confidence": 0.5,
-                "explanation": "test",
-            })
+            json.dumps(
+                {
+                    "relationship": "irrelevant",
+                    "confidence": 0.5,
+                    "explanation": "test",
+                }
+            )
         )
 
         checker.check_relevance("Fact A", "Fact B")
 
         call_kwargs = checker._client.models.generate_content.call_args
-        assert call_kwargs.kwargs["model"] == "gemini-2.0-flash"
+        assert call_kwargs.kwargs["model"] == GeminiContradictionChecker.DEFAULT_MODEL
         assert call_kwargs.kwargs["config"]["response_mime_type"] == "application/json"
         assert call_kwargs.kwargs["config"]["temperature"] == 0.0
 
@@ -304,12 +305,12 @@ class TestGeminiContradictionChecker:
 # Tests: Factory backend selection
 # ---------------------------------------------------------------------------
 
+
 class TestFactoryBackendSelection:
     def test_factory_defaults_to_ollama(self):
         """Default backend is Ollama when env var is not set."""
-        with patch("core.llm_contradiction._get_ollama") as mock_get, \
-             patch.dict("os.environ", {}, clear=False) as env:
-            env.pop("ENGRAM_CHECKER_BACKEND", None)
+        with patch("core.llm_contradiction._get_ollama") as mock_get, patch.dict("os.environ", {}, clear=False) as env:
+            env.pop("VERINODE_CHECKER_BACKEND", None)
             mock_ollama = MagicMock()
             mock_get.return_value = mock_ollama
 
@@ -323,9 +324,7 @@ class TestFactoryBackendSelection:
             mock_genai = MagicMock()
             mock_get.return_value = mock_genai
 
-            checker = create_contradiction_checker(
-                backend="gemini", gemini_api_key="test-key"
-            )
+            checker = create_contradiction_checker(backend="gemini", gemini_api_key="test-key")
 
             assert isinstance(checker, GeminiContradictionChecker)
 
@@ -335,20 +334,19 @@ class TestFactoryBackendSelection:
             "core.llm_contradiction._get_genai",
             side_effect=ImportError("no genai"),
         ):
-            checker = create_contradiction_checker(
-                backend="gemini", gemini_api_key="test-key"
-            )
+            checker = create_contradiction_checker(backend="gemini", gemini_api_key="test-key")
 
             assert checker is None
 
     def test_factory_env_var_backend(self):
-        """ENGRAM_CHECKER_BACKEND env var selects backend."""
+        """VERINODE_CHECKER_BACKEND env var selects backend."""
         import os
-        old_backend = os.environ.get("ENGRAM_CHECKER_BACKEND")
-        old_key = os.environ.get("ENGRAM_GEMINI_API_KEY")
+
+        old_backend = os.environ.get("VERINODE_CHECKER_BACKEND")
+        old_key = os.environ.get("VERINODE_GEMINI_API_KEY")
         try:
-            os.environ["ENGRAM_CHECKER_BACKEND"] = "gemini"
-            os.environ["ENGRAM_GEMINI_API_KEY"] = "test-key"
+            os.environ["VERINODE_CHECKER_BACKEND"] = "gemini"
+            os.environ["VERINODE_GEMINI_API_KEY"] = "test-key"
 
             with patch("core.llm_contradiction._get_genai") as mock_get:
                 mock_genai = MagicMock()
@@ -359,13 +357,13 @@ class TestFactoryBackendSelection:
                 assert isinstance(checker, GeminiContradictionChecker)
         finally:
             if old_backend is not None:
-                os.environ["ENGRAM_CHECKER_BACKEND"] = old_backend
+                os.environ["VERINODE_CHECKER_BACKEND"] = old_backend
             else:
-                os.environ.pop("ENGRAM_CHECKER_BACKEND", None)
+                os.environ.pop("VERINODE_CHECKER_BACKEND", None)
             if old_key is not None:
-                os.environ["ENGRAM_GEMINI_API_KEY"] = old_key
+                os.environ["VERINODE_GEMINI_API_KEY"] = old_key
             else:
-                os.environ.pop("ENGRAM_GEMINI_API_KEY", None)
+                os.environ.pop("VERINODE_GEMINI_API_KEY", None)
 
     def test_factory_ollama_unavailable_returns_none(self):
         """When Ollama not available, factory returns None for ollama backend."""
@@ -382,6 +380,7 @@ class TestFactoryBackendSelection:
 # Tests: Multi-pair batch (Gemini)
 # ---------------------------------------------------------------------------
 
+
 class TestGeminiRelevanceBatch:
     """Tests for Gemini relevance batch checking."""
 
@@ -394,11 +393,15 @@ class TestGeminiRelevanceBatch:
     def test_relevance_cache_directional(self):
         """Relevance cache is directional (claim, knowledge) not symmetric."""
         checker = _make_gemini_checker()
-        response = _mock_gemini_response(json.dumps({
-            "relationship": "contradicts",
-            "confidence": 0.9,
-            "explanation": "Different values",
-        }))
+        response = _mock_gemini_response(
+            json.dumps(
+                {
+                    "relationship": "contradicts",
+                    "confidence": 0.9,
+                    "explanation": "Different values",
+                }
+            )
+        )
         checker._client.models.generate_content.return_value = response
 
         result = checker.check_relevance("A melts at 500", "A melts at 1000")
@@ -411,8 +414,11 @@ class TestGeminiRelevanceBatch:
         """clear_cache() clears the relevance cache."""
         checker = _make_gemini_checker()
         checker._relevance_cache[("C", "D")] = RelevanceResult(
-            claim="C", knowledge="D", relationship="supports",
-            confidence=0.8, explanation="y",
+            claim="C",
+            knowledge="D",
+            relationship="supports",
+            confidence=0.8,
+            explanation="y",
         )
 
         checker.clear_cache()
@@ -424,17 +430,20 @@ class TestGeminiRelevanceBatch:
 # Tests: Ollama relevance cache
 # ---------------------------------------------------------------------------
 
+
 def test_ollama_relevance_cache():
     """Ollama ContradictionChecker caches relevance results."""
     with patch("core.llm_contradiction._get_ollama") as mock_get:
         mock_client = MagicMock()
         mock_get.return_value.Client.return_value = mock_client
 
-        mock_client.chat.return_value.message.content = json.dumps({
-            "relationship": "supports",
-            "confidence": 0.85,
-            "explanation": "Same property, consistent values",
-        })
+        mock_client.chat.return_value.message.content = json.dumps(
+            {
+                "relationship": "supports",
+                "confidence": 0.85,
+                "explanation": "Same property, consistent values",
+            }
+        )
 
         checker = ContradictionChecker(model="test")
 

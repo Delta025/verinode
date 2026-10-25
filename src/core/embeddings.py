@@ -5,9 +5,10 @@ Provides semantic similarity search, automatic embedding generation,
 and a FAISS-backed vector index for efficient nearest-neighbor queries.
 """
 
-from typing import List, Optional, Dict, Tuple
-import numpy as np
 import logging
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +22,11 @@ def _get_sentence_transformers():
     if _sentence_transformers is None:
         try:
             import sentence_transformers
+
             _sentence_transformers = sentence_transformers
         except ImportError:
             raise ImportError(
-                "sentence-transformers is required for embeddings. "
-                "Install with: pip install sentence-transformers"
+                "sentence-transformers is required for embeddings. Install with: pip install sentence-transformers"
             )
     return _sentence_transformers
 
@@ -36,6 +37,7 @@ def _get_faiss():
     if _faiss is None:
         try:
             import faiss
+
             _faiss = faiss
         except ImportError:
             return None
@@ -70,7 +72,7 @@ class EmbeddingEngine:
         self._model = None
 
         # Index storage
-        self._node_ids: List[str] = []          # position -> node_id
+        self._node_ids: List[str] = []  # position -> node_id
         self._id_to_position: Dict[str, int] = {}  # node_id -> position
         self._embeddings: Optional[np.ndarray] = None  # N x dimension matrix
         self._pending_embeddings: List[np.ndarray] = []  # buffer for batch adds
@@ -122,9 +124,7 @@ class EmbeddingEngine:
         Returns:
             2-D numpy array of shape (len(texts), dimension).
         """
-        embeddings = self.model.encode(
-            texts, batch_size=batch_size, convert_to_numpy=True
-        )
+        embeddings = self.model.encode(texts, batch_size=batch_size, convert_to_numpy=True)
         return embeddings.astype(np.float32)
 
     # ------------------------------------------------------------------
@@ -331,10 +331,12 @@ class EmbeddingEngine:
                     continue
 
             if score >= threshold:
-                results.append({
-                    "node_id": node_id,
-                    "score": float(score),
-                })
+                results.append(
+                    {
+                        "node_id": node_id,
+                        "score": float(score),
+                    }
+                )
 
             if len(results) >= k:
                 break
@@ -378,10 +380,12 @@ class EmbeddingEngine:
             if result_id == node_id:
                 continue
             if score >= threshold:
-                results.append({
-                    "node_id": result_id,
-                    "score": float(score),
-                })
+                results.append(
+                    {
+                        "node_id": result_id,
+                        "score": float(score),
+                    }
+                )
             if len(results) >= k:
                 break
 
@@ -462,9 +466,7 @@ class EmbeddingEngine:
         index.add(normalized)
         self._faiss_index = index
 
-    def _search_vectors(
-        self, query_vec: np.ndarray, k: int
-    ) -> Tuple[List[float], List[int]]:
+    def _search_vectors(self, query_vec: np.ndarray, k: int) -> Tuple[List[float], List[int]]:
         """
         Run nearest-neighbor search. Uses FAISS if available, otherwise numpy.
 
@@ -494,9 +496,7 @@ class EmbeddingEngine:
             query_normalized = query_vec
 
         if self._faiss_index is not None:
-            distances, indices = self._faiss_index.search(
-                query_normalized.astype(np.float32), k
-            )
+            distances, indices = self._faiss_index.search(query_normalized.astype(np.float32), k)
             return distances[0].tolist(), indices[0].tolist()
 
         # Fallback: brute-force cosine similarity with numpy

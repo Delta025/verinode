@@ -40,12 +40,8 @@ def pytest_collection_modifyitems(config, items):
     run_integration = config.getoption("--run-integration")
     run_calibration = config.getoption("--run-calibration")
 
-    skip_integration = pytest.mark.skip(
-        reason="Needs --run-integration flag and a running Ollama server"
-    )
-    skip_calibration = pytest.mark.skip(
-        reason="Needs --run-calibration flag (and possibly models/datasets)"
-    )
+    skip_integration = pytest.mark.skip(reason="Needs --run-integration flag and a running Ollama server")
+    skip_calibration = pytest.mark.skip(reason="Needs --run-calibration flag (and possibly models/datasets)")
 
     for item in items:
         if "integration" in item.keywords and not run_integration:

@@ -5,16 +5,25 @@ Tests for src/core/metrics.py — evaluation metrics for calibration.
 import json
 import os
 import tempfile
+
 import pytest
 
 from src.core.metrics import (
-    precision, recall, f1_score, accuracy,
-    confusion_matrix, classification_report, threshold_sweep,
-    BenchmarkResult, save_report, load_report, load_jsonl,
+    BenchmarkResult,
+    accuracy,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    load_jsonl,
+    load_report,
+    precision,
+    recall,
+    save_report,
+    threshold_sweep,
 )
 
-
 # ── precision / recall / f1 / accuracy ──────────────────────────────────
+
 
 class TestPrecision:
     def test_perfect(self):
@@ -79,6 +88,7 @@ class TestAccuracy:
 
 # ── confusion_matrix ────────────────────────────────────────────────────
 
+
 class TestConfusionMatrix:
     def test_all_true_positive(self):
         cm = confusion_matrix([True, True, True], [True, True, True])
@@ -89,7 +99,7 @@ class TestConfusionMatrix:
         assert cm == {"tp": 0, "fp": 0, "tn": 2, "fn": 0}
 
     def test_mixed(self):
-        preds =   [True, True, False, False, True]
+        preds = [True, True, False, False, True]
         actuals = [True, False, True, False, True]
         cm = confusion_matrix(preds, actuals)
         assert cm == {"tp": 2, "fp": 1, "tn": 1, "fn": 1}
@@ -105,9 +115,10 @@ class TestConfusionMatrix:
 
 # ── classification_report ───────────────────────────────────────────────
 
+
 class TestClassificationReport:
     def test_binary(self):
-        preds =   ["pos", "pos", "neg", "neg", "pos"]
+        preds = ["pos", "pos", "neg", "neg", "pos"]
         actuals = ["pos", "neg", "neg", "pos", "pos"]
         report = classification_report(preds, actuals)
 
@@ -122,7 +133,7 @@ class TestClassificationReport:
         assert pos["support"] == 3
 
     def test_multiclass(self):
-        preds =   ["A", "B", "C", "A", "B", "C"]
+        preds = ["A", "B", "C", "A", "B", "C"]
         actuals = ["A", "B", "C", "B", "C", "A"]
         report = classification_report(preds, actuals, labels=["A", "B", "C"])
 
@@ -140,7 +151,7 @@ class TestClassificationReport:
         assert report["micro_avg"]["recall"] == 1.0
 
     def test_all_wrong(self):
-        preds =   ["A", "A", "A"]
+        preds = ["A", "A", "A"]
         actuals = ["B", "B", "B"]
         report = classification_report(preds, actuals, labels=["A", "B"])
 
@@ -163,6 +174,7 @@ class TestClassificationReport:
 
 
 # ── threshold_sweep ─────────────────────────────────────────────────────
+
 
 class TestThresholdSweep:
     def test_default_thresholds(self):
@@ -191,6 +203,7 @@ class TestThresholdSweep:
 
 
 # ── BenchmarkResult ─────────────────────────────────────────────────────
+
 
 class TestBenchmarkResult:
     def test_creation(self):
@@ -248,6 +261,7 @@ class TestBenchmarkResult:
 
 
 # ── load_jsonl ──────────────────────────────────────────────────────────
+
 
 class TestLoadJsonl:
     def test_basic(self):

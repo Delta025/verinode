@@ -13,15 +13,16 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 
 import src.api.state as state_mod
+
 from ..schemas import (
+    DecayResultItem,
+    DoubtFlagItem,
     MaintenanceRequest,
     MaintenanceResponse,
-    DecayResultItem,
-    StrengthResultItem,
-    DoubtFlagItem,
+    MaintenanceStatusResponse,
     StrengthenRequest,
     StrengthenResponse,
-    MaintenanceStatusResponse,
+    StrengthResultItem,
 )
 
 router = APIRouter(tags=["maintenance"])
@@ -34,6 +35,7 @@ def _copy_graph_for_dry_run(graph):
     so we build a fresh KnowledgeGraph and deep-copy each node into it.
     """
     from src.core.graph import KnowledgeGraph
+
     graph_copy = KnowledgeGraph()
     for node in graph.nodes.values():
         graph_copy.add_node(copy.deepcopy(node))
@@ -136,7 +138,9 @@ def strengthen_node(req: StrengthenRequest):
         raise HTTPException(status_code=404, detail=f"Node {req.node_id} not found")
 
     result = st.neuroplasticity_engine.strengthen_pathway(
-        st.graph, req.node_id, is_validation=req.is_validation,
+        st.graph,
+        req.node_id,
+        is_validation=req.is_validation,
     )
 
     if result is not None:

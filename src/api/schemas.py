@@ -1,15 +1,16 @@
 """
-Pydantic response models for the Engram API.
+Pydantic response models for the Verinode API.
 
 These provide automatic JSON serialization, validation, and OpenAPI
 documentation. Shapes match the dicts returned by src/core modules.
 """
 
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
+from pydantic import BaseModel, Field
 
 # --- Graph & Stats ---
+
 
 class GraphStats(BaseModel):
     total_nodes: int
@@ -21,6 +22,7 @@ class GraphStats(BaseModel):
 
 
 # --- Nodes ---
+
 
 class NodeSummary(BaseModel):
     id: str
@@ -66,6 +68,7 @@ class NodeNeighbors(BaseModel):
 
 # --- Graph Visualization (Cytoscape.js) ---
 
+
 class CytoscapeNodeData(BaseModel):
     id: str
     label: str
@@ -97,6 +100,7 @@ class GraphData(BaseModel):
 
 # --- Anomalies ---
 
+
 class AnomalyItem(BaseModel):
     node_id: str
     node_text: str
@@ -108,6 +112,7 @@ class AnomalyItem(BaseModel):
 
 
 # --- Ingestion ---
+
 
 class IngestionRequest(BaseModel):
     text: str
@@ -138,6 +143,7 @@ class IngestionResponse(BaseModel):
 
 # --- Query ---
 
+
 class QueryRequest(BaseModel):
     question: str
     k: int = 10
@@ -166,6 +172,7 @@ class QueryResponse(BaseModel):
 
 # --- Hypothesis ---
 
+
 class HypothesisRequest(BaseModel):
     hypothesis: str
     k: int = 10
@@ -180,6 +187,7 @@ class HypothesisResponse(BaseModel):
 
 
 # --- Verification ---
+
 
 class VerifyRequest(BaseModel):
     claim: str
@@ -232,6 +240,7 @@ class RetractResponse(BaseModel):
 
 # --- Graph Loading ---
 
+
 class LoadGraphRequest(BaseModel):
     path: str
 
@@ -270,6 +279,7 @@ class MergeGraphResponse(BaseModel):
 
 
 # --- LLM Memory ---
+
 
 class MemoryQueryRequest(BaseModel):
     question: str
@@ -342,6 +352,7 @@ class MemoryImportResponse(BaseModel):
 
 # --- History ---
 
+
 class ChangelogEntry(BaseModel):
     id: int
     timestamp: str
@@ -351,6 +362,7 @@ class ChangelogEntry(BaseModel):
 
 
 # --- Maintenance / Neuroplasticity ---
+
 
 class MaintenanceRequest(BaseModel):
     dry_run: bool = False
@@ -421,6 +433,7 @@ class MaintenanceStatusResponse(BaseModel):
 
 # --- Node Update ---
 
+
 class NodeUpdateRequest(BaseModel):
     confidence: Optional[float] = Field(None, ge=0.0, le=1.0)
     domain: Optional[str] = None
@@ -434,6 +447,7 @@ class NodeUpdateResponse(BaseModel):
 
 
 # --- File Browser ---
+
 
 class FileEntry(BaseModel):
     name: str

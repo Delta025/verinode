@@ -2,7 +2,7 @@
 Sub-graph export and import for portable domain slices.
 
 Enables "Federation Lite" — packaging a domain slice as a portable
-JSON file that can be imported into another Engram instance.
+JSON file that can be imported into another Verinode instance.
 
 Usage:
     export = export_subgraph(graph, "chemistry", confidence_threshold=0.6)
@@ -17,13 +17,12 @@ import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
+from .graph import KnowledgeGraph
+from .node import KnowledgeNode
 
 logger = logging.getLogger(__name__)
-
-from .node import KnowledgeNode
-from .graph import KnowledgeGraph
-
 
 # ------------------------------------------------------------------
 # Constants
@@ -36,9 +35,11 @@ EXPORT_SCHEMA_VERSION = 1
 # Data structures
 # ------------------------------------------------------------------
 
+
 @dataclass
 class SubGraphExport:
     """Portable domain slice."""
+
     schema_version: int = EXPORT_SCHEMA_VERSION
     domain: str = ""
     exported_at: str = ""
@@ -53,6 +54,7 @@ class SubGraphExport:
 # ------------------------------------------------------------------
 # Export
 # ------------------------------------------------------------------
+
 
 def export_subgraph(
     graph: KnowledgeGraph,
@@ -96,20 +98,24 @@ def export_subgraph(
             if succ_id in filtered_ids:
                 succ_node = graph.get_node(succ_id)
                 rel_type = succ_node.get_edge_label(node_id) if succ_node else "depends_on"
-                edges.append({
-                    "source": node_id,
-                    "target": succ_id,
-                    "type": rel_type,
-                })
+                edges.append(
+                    {
+                        "source": node_id,
+                        "target": succ_id,
+                        "type": rel_type,
+                    }
+                )
         for conflict_id in node.conflicts_with:
             if conflict_id in filtered_ids:
                 # Avoid duplicate conflict edges (A→B and B→A)
                 if node_id < conflict_id:
-                    edges.append({
-                        "source": node_id,
-                        "target": conflict_id,
-                        "type": "conflicts",
-                    })
+                    edges.append(
+                        {
+                            "source": node_id,
+                            "target": conflict_id,
+                            "type": "conflicts",
+                        }
+                    )
 
     return SubGraphExport(
         schema_version=EXPORT_SCHEMA_VERSION,
@@ -128,19 +134,23 @@ def export_subgraph(
 # Serialization
 # ------------------------------------------------------------------
 
+
 def export_to_json(export: SubGraphExport, indent: int = 2) -> str:
     """Serialize a SubGraphExport to a JSON string."""
-    return json.dumps({
-        "schema_version": export.schema_version,
-        "domain": export.domain,
-        "exported_at": export.exported_at,
-        "source_graph": export.source_graph,
-        "confidence_threshold": export.confidence_threshold,
-        "node_count": export.node_count,
-        "edge_count": export.edge_count,
-        "nodes": export.nodes,
-        "edges": export.edges,
-    }, indent=indent)
+    return json.dumps(
+        {
+            "schema_version": export.schema_version,
+            "domain": export.domain,
+            "exported_at": export.exported_at,
+            "source_graph": export.source_graph,
+            "confidence_threshold": export.confidence_threshold,
+            "node_count": export.node_count,
+            "edge_count": export.edge_count,
+            "nodes": export.nodes,
+            "edges": export.edges,
+        },
+        indent=indent,
+    )
 
 
 def import_from_json(json_str: str) -> SubGraphExport:
@@ -151,7 +161,7 @@ def import_from_json(json_str: str) -> SubGraphExport:
         raise ValueError(
             f"Export schema version {data['schema_version']} is newer than "
             f"supported version {EXPORT_SCHEMA_VERSION}. "
-            f"Please upgrade Engram."
+            f"Please upgrade Verinode."
         )
 
     return SubGraphExport(
@@ -170,6 +180,7 @@ def import_from_json(json_str: str) -> SubGraphExport:
 # ------------------------------------------------------------------
 # Import
 # ------------------------------------------------------------------
+
 
 def import_subgraph(
     graph: KnowledgeGraph,
@@ -201,8 +212,7 @@ def import_subgraph(
     skipped_edges = 0
     for node_data in export.nodes:
         if "id" not in node_data or "text" not in node_data:
-            logger.warning("Skipping node with missing required fields: %s",
-                           list(node_data.keys()))
+            logger.warning("Skipping node with missing required fields: %s", list(node_data.keys()))
             continue
         old_id = node_data["id"]
 
@@ -305,9 +315,11 @@ def _find_duplicate(
 # Graph Merging
 # ------------------------------------------------------------------
 
+
 @dataclass
 class MergeStats:
     """Statistics from a graph merge operation."""
+
     nodes_from_a: int = 0
     nodes_from_b_added: int = 0
     nodes_from_b_merged: int = 0
@@ -479,8 +491,11 @@ def merge_graphs(
     total_merged = len(merged)
     logger.info(
         "Merged graphs: %d (from A) + %d added + %d merged + %d skipped = %d total",
-        stats.nodes_from_a, stats.nodes_from_b_added,
-        stats.nodes_from_b_merged, stats.nodes_from_b_skipped, total_merged,
+        stats.nodes_from_a,
+        stats.nodes_from_b_added,
+        stats.nodes_from_b_merged,
+        stats.nodes_from_b_skipped,
+        total_merged,
     )
 
     return merged, stats
@@ -491,9 +506,7 @@ def _merge_source_lists(existing: KnowledgeNode, incoming: KnowledgeNode) -> Non
     Merge source lists from incoming node into existing node (union by title+source_type).
     Also updates last_validated and sums access_count.
     """
-    existing_keys = {
-        (s.title, s.source_type) for s in existing.sources
-    }
+    existing_keys = {(s.title, s.source_type) for s in existing.sources}
     for source in incoming.sources:
         key = (source.title, source.source_type)
         if key not in existing_keys:

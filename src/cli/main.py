@@ -1,5 +1,5 @@
 """
-Engram CLI — click-based command-line interface.
+Verinode CLI — click-based command-line interface.
 
 Run via:  python -m src.cli [--graph PATH] [--model MODEL] COMMAND
 """
@@ -8,29 +8,29 @@ from pathlib import Path
 
 import click
 
-from .state import EngineState
 from .formatting import (
     console,
-    format_node_table,
-    format_stats,
     format_anomalies,
-    format_ingestion_result,
-    format_query_result,
-    format_hypothesis_result,
-    format_verification_result,
-    format_retraction_result,
-    format_memory_result,
+    format_confidence_trace,
+    format_doubt_flags,
     format_export_result,
+    format_hypothesis_result,
     format_import_result,
+    format_ingestion_result,
+    format_maintenance_report,
+    format_memory_result,
     format_merge_result,
     format_node_detail,
-    format_confidence_trace,
-    format_maintenance_report,
-    format_doubt_flags,
+    format_node_table,
+    format_query_result,
+    format_retraction_result,
+    format_stats,
     format_strengthen_result,
+    format_verification_result,
     resolve_node_id,
     short_id,
 )
+from .state import EngineState
 
 # Click context key for shared state
 _STATE_KEY = "state"
@@ -40,24 +40,27 @@ _STATE_KEY = "state"
 # Root group
 # ------------------------------------------------------------------
 
+
 @click.group()
 @click.option(
-    "--graph", "-g",
-    default="engram_graph.json",
-    envvar="ENGRAM_GRAPH",
+    "--graph",
+    "-g",
+    default="verinode_graph.json",
+    envvar="VERINODE_GRAPH",
     show_default=True,
     help="Path to the graph file (.json or .db).",
 )
 @click.option(
-    "--model", "-m",
+    "--model",
+    "-m",
     default="qwen3:14b",
-    envvar="ENGRAM_MODEL",
+    envvar="VERINODE_MODEL",
     show_default=True,
     help="Ollama model name for LLM operations.",
 )
 @click.pass_context
 def cli(ctx, graph, model):
-    """Engram — knowledge graph with confidence tracking and reasoning."""
+    """Verinode — knowledge graph with confidence tracking and reasoning."""
     ctx.ensure_object(dict)
     state = EngineState(graph_path=graph, model=model)
     # Auto-load graph if the file exists
@@ -78,6 +81,7 @@ def _get_state(ctx) -> EngineState:
 # stats
 # ------------------------------------------------------------------
 
+
 @cli.command()
 @click.pass_context
 def stats(ctx):
@@ -93,6 +97,7 @@ def stats(ctx):
 # ------------------------------------------------------------------
 # list
 # ------------------------------------------------------------------
+
 
 @cli.command("list")
 @click.option("--domain", "-d", default=None, help="Filter by domain.")
@@ -114,7 +119,7 @@ def list_nodes(ctx, domain, node_type, status, limit, sort):
         console.print("[dim]Graph is empty.[/dim]")
         return
 
-    from src.core.node import NodeType, NodeStatus
+    from src.core.node import NodeStatus, NodeType
 
     nodes = list(state.graph.nodes.values())
 
@@ -125,18 +130,14 @@ def list_nodes(ctx, domain, node_type, status, limit, sort):
         try:
             nt = NodeType(node_type)
         except ValueError:
-            raise click.BadParameter(
-                f"Unknown type '{node_type}'. "
-                f"Choose from: {', '.join(t.value for t in NodeType)}"
-            )
+            raise click.BadParameter(f"Unknown type '{node_type}'. Choose from: {', '.join(t.value for t in NodeType)}")
         nodes = [n for n in nodes if n.node_type == nt]
     if status:
         try:
             ns = NodeStatus(status)
         except ValueError:
             raise click.BadParameter(
-                f"Unknown status '{status}'. "
-                f"Choose from: {', '.join(s.value for s in NodeStatus)}"
+                f"Unknown status '{status}'. Choose from: {', '.join(s.value for s in NodeStatus)}"
             )
         nodes = [n for n in nodes if n.status == ns]
 
@@ -172,6 +173,7 @@ def list_nodes(ctx, domain, node_type, status, limit, sort):
 # inspect
 # ------------------------------------------------------------------
 
+
 @cli.command()
 @click.argument("node_id")
 @click.pass_context
@@ -186,6 +188,7 @@ def inspect(ctx, node_id):
 # ------------------------------------------------------------------
 # explain
 # ------------------------------------------------------------------
+
 
 @cli.command()
 @click.argument("node_id")
@@ -202,6 +205,7 @@ def explain(ctx, node_id):
 # trace
 # ------------------------------------------------------------------
 
+
 @cli.command()
 @click.argument("node_id")
 @click.pass_context
@@ -216,6 +220,7 @@ def trace(ctx, node_id):
 # ------------------------------------------------------------------
 # anomalies
 # ------------------------------------------------------------------
+
 
 @cli.command()
 @click.option("--threshold", default=0.15, show_default=True, help="Anomaly threshold.")
@@ -254,10 +259,13 @@ class ConfidenceEngineWithThreshold:
 # save / load
 # ------------------------------------------------------------------
 
+
 @cli.command()
 @click.argument("path", required=False)
 @click.option(
-    "--format", "-F", "fmt",
+    "--format",
+    "-F",
+    "fmt",
     type=click.Choice(["json", "sqlite"], case_sensitive=False),
     default=None,
     help="Force output format (json or sqlite). Inferred from extension if omitted.",
@@ -297,6 +305,7 @@ def load(ctx, path):
 # ------------------------------------------------------------------
 # ingest
 # ------------------------------------------------------------------
+
 
 @cli.command()
 @click.argument("text_or_path")
@@ -366,6 +375,7 @@ def ingest(ctx, text_or_path, is_file, domain, source_type, source_title, source
 # query
 # ------------------------------------------------------------------
 
+
 @cli.command()
 @click.argument("question")
 @click.option("--k", default=5, show_default=True, help="Number of candidate nodes.")
@@ -391,6 +401,7 @@ def query(ctx, question, k, show_chains):
 # ------------------------------------------------------------------
 # hypothesis
 # ------------------------------------------------------------------
+
 
 @cli.command()
 @click.argument("claim")
@@ -418,6 +429,7 @@ def hypothesis(ctx, claim, k, show_evidence):
 # verify
 # ------------------------------------------------------------------
 
+
 @cli.command()
 @click.argument("claim")
 @click.option("--k", default=10, show_default=True, help="Number of candidate nodes.")
@@ -438,6 +450,7 @@ def verify(ctx, claim, k, show_evidence):
 # ------------------------------------------------------------------
 # what-if
 # ------------------------------------------------------------------
+
 
 @cli.command("what-if")
 @click.argument("node_id")
@@ -466,6 +479,7 @@ def what_if(ctx, node_id):
 # maintain
 # ------------------------------------------------------------------
 
+
 @cli.command()
 @click.option("--dry-run", is_flag=True, help="Show what would change without modifying the graph.")
 @click.pass_context
@@ -480,6 +494,7 @@ def maintain(ctx, dry_run):
 
     if dry_run:
         from src.core.graph import KnowledgeGraph as KG
+
         graph_copy = KG()
         for node in state.graph.nodes.values():
             graph_copy.add_node(copy.deepcopy(node))
@@ -499,6 +514,7 @@ def maintain(ctx, dry_run):
 # ------------------------------------------------------------------
 # doubt
 # ------------------------------------------------------------------
+
 
 @cli.command()
 @click.pass_context
@@ -523,6 +539,7 @@ def doubt(ctx):
 # strengthen
 # ------------------------------------------------------------------
 
+
 @cli.command()
 @click.argument("node_id")
 @click.option("--validate", is_flag=True, help="Also mark the node as validated (update last_validated).")
@@ -533,7 +550,9 @@ def strengthen(ctx, node_id, validate):
     full_id = resolve_node_id(state.graph, node_id)
 
     result = state.neuroplasticity_engine.strengthen_pathway(
-        state.graph, full_id, is_validation=validate,
+        state.graph,
+        full_id,
+        is_validation=validate,
     )
 
     if result is None:
@@ -556,6 +575,7 @@ def strengthen(ctx, node_id, validate):
 # ------------------------------------------------------------------
 # history
 # ------------------------------------------------------------------
+
 
 @cli.command()
 @click.option("--limit", "-n", default=20, show_default=True, help="Max entries to show.")
@@ -616,6 +636,7 @@ def history(ctx, limit):
 # memory-query
 # ------------------------------------------------------------------
 
+
 @cli.command("memory-query")
 @click.argument("question")
 @click.option("--domain", "-d", default=None, help="Filter by domain.")
@@ -637,6 +658,7 @@ def memory_query(ctx, question, domain, k, chains):
 # ------------------------------------------------------------------
 # export
 # ------------------------------------------------------------------
+
 
 @cli.command("export")
 @click.argument("domain")
@@ -668,6 +690,7 @@ def export_graph(ctx, domain, output, threshold):
 # ------------------------------------------------------------------
 # import-graph
 # ------------------------------------------------------------------
+
 
 @cli.command("import-graph")
 @click.argument("path")
@@ -703,6 +726,7 @@ def import_graph(ctx, path, strategy):
 # merge-graphs
 # ------------------------------------------------------------------
 
+
 @cli.command("merge-graphs")
 @click.argument("graph_a_path")
 @click.argument("graph_b_path")
@@ -731,8 +755,8 @@ def merge_graphs_cmd(ctx, graph_a_path, graph_b_path, output_path, strategy, mer
         if not Path(p).exists():
             raise click.BadParameter(f"{label} not found: {p}")
 
-    from src.core.graph import KnowledgeGraph
     from src.core.export import merge_graphs
+    from src.core.graph import KnowledgeGraph
 
     console.print(f"[dim]Loading graph A: {graph_a_path}[/dim]")
     graph_a = KnowledgeGraph.load(graph_a_path)
