@@ -392,7 +392,7 @@ class GeminiContradictionChecker:
 
     Requires:
         pip install google-genai
-        Set ENGRAM_GEMINI_API_KEY environment variable.
+        Set VERINODE_GEMINI_API_KEY environment variable.
 
     Usage:
         checker = GeminiContradictionChecker(api_key="...")
@@ -413,7 +413,7 @@ class GeminiContradictionChecker:
 
         Args:
             api_key: Google Gemini API key.  Falls back to
-                ENGRAM_GEMINI_API_KEY environment variable.
+                VERINODE_GEMINI_API_KEY environment variable.
             model: Gemini model name.  Defaults to DEFAULT_MODEL.
             temperature: Sampling temperature (0 = deterministic).
             rate_limiter: Optional :class:`GeminiRateLimiter` instance
@@ -425,10 +425,10 @@ class GeminiContradictionChecker:
         self.temperature = temperature
         self.rate_limiter = rate_limiter
 
-        resolved_key = api_key or os.environ.get("ENGRAM_GEMINI_API_KEY")
+        resolved_key = api_key or os.environ.get("VERINODE_GEMINI_API_KEY")
         if not resolved_key:
             raise ValueError(
-                "Gemini API key required. Set ENGRAM_GEMINI_API_KEY "
+                "Gemini API key required. Set VERINODE_GEMINI_API_KEY "
                 "environment variable or pass api_key= to constructor."
             )
 
@@ -552,8 +552,8 @@ def create_contradiction_checker(
         model: Model name (Ollama model or Gemini model).
         host: Ollama server URL (Ollama backend only).
         backend: "ollama" (default) or "gemini".  Falls back to
-            ENGRAM_CHECKER_BACKEND environment variable.
-        gemini_api_key: Gemini API key (overrides ENGRAM_GEMINI_API_KEY
+            VERINODE_CHECKER_BACKEND environment variable.
+        gemini_api_key: Gemini API key (overrides VERINODE_GEMINI_API_KEY
             environment variable).
         rate_limiter: Optional :class:`GeminiRateLimiter` instance
             for shared rate limiting (Gemini backend only).
@@ -566,7 +566,7 @@ def create_contradiction_checker(
 
     resolved_backend = (
         backend
-        or os.environ.get("ENGRAM_CHECKER_BACKEND", "ollama")
+        or os.environ.get("VERINODE_CHECKER_BACKEND", "ollama")
     ).lower().strip()
 
     if resolved_backend == "gemini":

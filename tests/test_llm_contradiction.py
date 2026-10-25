@@ -273,13 +273,13 @@ class TestGeminiContradictionChecker:
             with patch.dict("os.environ", {}, clear=False):
                 # Remove the env var if it exists
                 import os
-                old_val = os.environ.pop("ENGRAM_GEMINI_API_KEY", None)
+                old_val = os.environ.pop("VERINODE_GEMINI_API_KEY", None)
                 try:
                     with pytest.raises(ValueError, match="API key required"):
                         GeminiContradictionChecker()
                 finally:
                     if old_val is not None:
-                        os.environ["ENGRAM_GEMINI_API_KEY"] = old_val
+                        os.environ["VERINODE_GEMINI_API_KEY"] = old_val
 
     def test_gemini_call_format(self):
         """Verify the Gemini API is called with correct parameters."""
@@ -309,7 +309,7 @@ class TestFactoryBackendSelection:
         """Default backend is Ollama when env var is not set."""
         with patch("core.llm_contradiction._get_ollama") as mock_get, \
              patch.dict("os.environ", {}, clear=False) as env:
-            env.pop("ENGRAM_CHECKER_BACKEND", None)
+            env.pop("VERINODE_CHECKER_BACKEND", None)
             mock_ollama = MagicMock()
             mock_get.return_value = mock_ollama
 
@@ -342,13 +342,13 @@ class TestFactoryBackendSelection:
             assert checker is None
 
     def test_factory_env_var_backend(self):
-        """ENGRAM_CHECKER_BACKEND env var selects backend."""
+        """VERINODE_CHECKER_BACKEND env var selects backend."""
         import os
-        old_backend = os.environ.get("ENGRAM_CHECKER_BACKEND")
-        old_key = os.environ.get("ENGRAM_GEMINI_API_KEY")
+        old_backend = os.environ.get("VERINODE_CHECKER_BACKEND")
+        old_key = os.environ.get("VERINODE_GEMINI_API_KEY")
         try:
-            os.environ["ENGRAM_CHECKER_BACKEND"] = "gemini"
-            os.environ["ENGRAM_GEMINI_API_KEY"] = "test-key"
+            os.environ["VERINODE_CHECKER_BACKEND"] = "gemini"
+            os.environ["VERINODE_GEMINI_API_KEY"] = "test-key"
 
             with patch("core.llm_contradiction._get_genai") as mock_get:
                 mock_genai = MagicMock()
@@ -359,13 +359,13 @@ class TestFactoryBackendSelection:
                 assert isinstance(checker, GeminiContradictionChecker)
         finally:
             if old_backend is not None:
-                os.environ["ENGRAM_CHECKER_BACKEND"] = old_backend
+                os.environ["VERINODE_CHECKER_BACKEND"] = old_backend
             else:
-                os.environ.pop("ENGRAM_CHECKER_BACKEND", None)
+                os.environ.pop("VERINODE_CHECKER_BACKEND", None)
             if old_key is not None:
-                os.environ["ENGRAM_GEMINI_API_KEY"] = old_key
+                os.environ["VERINODE_GEMINI_API_KEY"] = old_key
             else:
-                os.environ.pop("ENGRAM_GEMINI_API_KEY", None)
+                os.environ.pop("VERINODE_GEMINI_API_KEY", None)
 
     def test_factory_ollama_unavailable_returns_none(self):
         """When Ollama not available, factory returns None for ollama backend."""

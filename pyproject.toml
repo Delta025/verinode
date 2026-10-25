@@ -3,7 +3,7 @@ requires = ["setuptools>=68.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "engram-ai"
+name = "verinode"
 version = "0.1.0"
 description = "Knowledge graph with confidence tracking, provenance, and truth verification"
 readme = "README.md"
@@ -48,8 +48,8 @@ dev = [
 benchmark = ["optuna>=3.0.0"]
 
 [project.scripts]
-engram = "src.cli.main:cli"
-engram-server = "src.api.server:main"
+verinode = "src.cli.main:cli"
+verinode-server = "src.api.server:main"
 
 [project.urls]
 Repository = "https://github.com/Delta025/Knowledge-Graph-AI"

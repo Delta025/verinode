@@ -1,5 +1,5 @@
 """
-Rich-based output formatters for the Engram CLI.
+Rich-based output formatters for the Verinode CLI.
 
 Provides coloured tables, panels, and tree views for
 knowledge graph data: nodes, statistics, anomalies,

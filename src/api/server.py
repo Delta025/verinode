@@ -1,7 +1,7 @@
-"""Entry point for the Engram API server.
+"""Entry point for the Verinode API server.
 
 Usage:
-    engram-server              # after pip install
+    verinode-server              # after pip install
     python -m src.api.server   # from source
 """
 
@@ -9,7 +9,7 @@ import uvicorn
 
 
 def main():
-    """Launch the Engram web server."""
+    """Launch the Verinode web server."""
     uvicorn.run(
         "src.api.main:app",
         host="127.0.0.1",

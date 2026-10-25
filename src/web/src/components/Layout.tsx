@@ -38,7 +38,7 @@ export default function Layout() {
       <nav style={styles.sidebar}>
         <div style={styles.logo}>
           <span style={styles.logoIcon}>E</span>
-          <span style={styles.logoText}>Engram AI</span>
+          <span style={styles.logoText}>Verinode</span>
         </div>
 
         <div style={styles.nav}>

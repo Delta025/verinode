@@ -1,1 +1,1 @@
-"""Calibration benchmark scripts for Engram."""
+"""Calibration benchmark scripts for Verinode."""

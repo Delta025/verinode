@@ -1,5 +1,5 @@
 """
-Engine state management for the Engram CLI.
+Engine state management for the Verinode CLI.
 
 Handles graph loading/saving and lazy initialisation of
 heavyweight components (embedding engine, pipeline, etc.)

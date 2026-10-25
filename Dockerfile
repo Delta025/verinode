@@ -30,7 +30,7 @@ COPY --from=frontend /build/dist/ src/web/dist/
 
 # Default graph storage location (mount a volume here)
 RUN mkdir -p /app/data
-ENV ENGRAM_GRAPH=/app/data/engram_graph.db
+ENV VERINODE_GRAPH=/app/data/verinode_graph.db
 
 # Default to connecting to the Ollama sidecar container
 ENV OLLAMA_HOST=http://ollama:11434
@@ -38,4 +38,4 @@ ENV OLLAMA_HOST=http://ollama:11434
 EXPOSE 8000
 
 # Launch the API server (serves both REST API and web UI)
-CMD ["engram-server"]
+CMD ["verinode-server"]

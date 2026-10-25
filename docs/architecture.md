@@ -1,6 +1,6 @@
-# Engram — System Architecture
+# Verinode — System Architecture
 
-This document describes the implemented architecture of Engram. All class names, method signatures, and behaviors described here reflect the current codebase.
+This document describes the implemented architecture of Verinode. All class names, method signatures, and behaviors described here reflect the current codebase.
 
 ## High-Level Data Flow
 
@@ -215,7 +215,7 @@ Key methods:
 **Calibrated performance** (Feb 2026, 150 FEVER pairs): F1=0.842, Precision=88.9%, Recall=80%. Detects semantic (29), numerical (7), and negation (9) contradiction types.
 
 Factory function:
-- `create_contradiction_checker(backend="ollama"|"gemini", gemini_api_key=None)` - returns checker or `None` if backend unavailable. Selects backend via `ENGRAM_CHECKER_BACKEND` env var.
+- `create_contradiction_checker(backend="ollama"|"gemini", gemini_api_key=None)` - returns checker or `None` if backend unavailable. Selects backend via `VERINODE_CHECKER_BACKEND` env var.
 
 Data class:
 - `RelevanceResult`: `claim`, `knowledge`, `relationship` ("contradicts"/"supports"/"irrelevant"), `confidence` (0.0-1.0), `explanation` (str). Used by Pipeline and VerificationEngine for 3-way evidence classification.
@@ -433,7 +433,7 @@ Coverage levels:
 
 ### export.py (Sub-graph Export/Import)
 
-Portable domain slices for sharing knowledge between Engram instances.
+Portable domain slices for sharing knowledge between Verinode instances.
 
 ```python
 EXPORT_SCHEMA_VERSION = 1
@@ -486,7 +486,7 @@ The Web UI wraps the same core modules used by the CLI into a REST API, with a R
 
 **`main.py`** — Application factory with:
 - CORS middleware for Vite dev server (localhost:5173)
-- Lifespan context manager: loads graph on startup from `ENGRAM_GRAPH` env var, closes SQLite on shutdown
+- Lifespan context manager: loads graph on startup from `VERINODE_GRAPH` env var, closes SQLite on shutdown
 - API route registration at `/api/*` prefix
 - Static asset serving at `/assets/*` for production builds
 - SPA catch-all route: any non-API, non-file path serves `index.html` for React Router client-side routing
@@ -597,7 +597,7 @@ A comprehensive suite of benchmarks validates system behavior at scale. Detailed
 **Headline results**:
 - **150-fact stress test**: 218 nodes from 150 facts, 39.2s/fact avg ingestion, 10/10 retrieval coverage, 218/218 export/import round-trip
 - **Claim verification** (post-Step 11): 9/10 false claims caught (90%), 9/10 true claims correct, 13.1s/claim avg on 215-node graph
-- **Vulnerability resistance benchmark** (75 tests, bare LLM vs LLM + Engram): Poisoned context resistance +80pp (20%→100%), subtle numerical errors +60pp (20%→80%)
+- **Vulnerability resistance benchmark** (75 tests, bare LLM vs LLM + Verinode): Poisoned context resistance +80pp (20%→100%), subtle numerical errors +60pp (20%→80%)
 - **Calibration**: Contradiction F1=0.842, extraction fidelity=0.800, 0% hallucination, E2E flag rate 48.3% with 0% false positives
 
 ## Truth Verification: Current Capabilities and Gaps

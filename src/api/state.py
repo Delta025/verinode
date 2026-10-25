@@ -20,7 +20,7 @@ class AppState:
 
     def __init__(
         self,
-        graph_path: str = "engram_graph.db",
+        graph_path: str = "verinode_graph.db",
         model: str = "qwen3:14b",
     ):
         self.graph_path = graph_path
@@ -69,7 +69,7 @@ class AppState:
             import os
             from src.core.pipeline import Pipeline
             from src.core.fact_extraction import create_fact_extractor
-            backend = os.environ.get("ENGRAM_EXTRACTOR_BACKEND", "ollama")
+            backend = os.environ.get("VERINODE_EXTRACTOR_BACKEND", "ollama")
             if backend == "ollama":
                 extractor = create_fact_extractor(backend="ollama", model=self.model)
             else:
@@ -88,7 +88,7 @@ class AppState:
         if self._contradiction_checker is None:
             import os
             from src.core.llm_contradiction import create_contradiction_checker
-            backend = os.environ.get("ENGRAM_CHECKER_BACKEND", "ollama")
+            backend = os.environ.get("VERINODE_CHECKER_BACKEND", "ollama")
             # Only pass model name when using the matching backend;
             # Gemini needs its own model name (defaults to gemini-2.0-flash).
             model = self.model if backend == "ollama" else None

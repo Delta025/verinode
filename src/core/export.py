@@ -2,7 +2,7 @@
 Sub-graph export and import for portable domain slices.
 
 Enables "Federation Lite" — packaging a domain slice as a portable
-JSON file that can be imported into another Engram instance.
+JSON file that can be imported into another Verinode instance.
 
 Usage:
     export = export_subgraph(graph, "chemistry", confidence_threshold=0.6)
@@ -151,7 +151,7 @@ def import_from_json(json_str: str) -> SubGraphExport:
         raise ValueError(
             f"Export schema version {data['schema_version']} is newer than "
             f"supported version {EXPORT_SCHEMA_VERSION}. "
-            f"Please upgrade Engram."
+            f"Please upgrade Verinode."
         )
 
     return SubGraphExport(
