@@ -29,7 +29,7 @@ List[ExtractedFact]
     |       → Phase 0.75: Cross-encoder reranker (optional, top_n candidates)
     |       → Phase 0.9: Content pre-filter (word overlap)
     |       → Phase 1: Heuristic pre-filter (negation words, numerical mismatches)
-    |       → Phase 2: LLM verification via qwen3:14b or Gemini 2.0 Flash
+    |       → Phase 2: LLM verification via qwen3:14b or Gemini Flash
     |       → If contradiction: flag (CONTESTED) or reject
     |    c. Source quality gating (cap confidence if source quality < 0.5)
     |       → If low-quality source: PROVISIONAL node
@@ -733,7 +733,7 @@ Approximate per-node memory usage: **~6.6KB**
 
 4. **FAISS is optional**: When FAISS is not installed, EmbeddingEngine uses numpy cosine similarity. This is slower for large indexes but functionally identical.
 
-5. **LLM used for extraction and contradiction detection**: The LLM (Ollama qwen3:14b or Gemini 2.0 Flash) is used in two modules: `fact_extraction.py` for structured fact extraction and `llm_contradiction.py` for 3-way relevance classification (contradicts/supports/irrelevant). Qwen3's thinking mode is explicitly disabled (`think=False`) for 2-5x speedup. The reasoning engine and confidence engine remain fully rule-based/heuristic. The dependency detector uses heuristics by default but can optionally use the LLM for contradiction verification.
+5. **LLM used for extraction and contradiction detection**: The LLM (Ollama qwen3:14b or Gemini Flash) is used in two modules: `fact_extraction.py` for structured fact extraction and `llm_contradiction.py` for 3-way relevance classification (contradicts/supports/irrelevant). Qwen3's thinking mode is explicitly disabled (`think=False`) for 2-5x speedup. The reasoning engine and confidence engine remain fully rule-based/heuristic. The dependency detector uses heuristics by default but can optionally use the LLM for contradiction verification.
 
 6. **Tests mock the LLM**: All unit tests use mocked Ollama/Gemini responses across 34 test files. No running server is needed for the unit test suite. Integration tests require a running Ollama server with qwen3:14b and are skipped by default. Calibration tests use real datasets but no LLM.
 

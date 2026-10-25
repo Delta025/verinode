@@ -296,7 +296,7 @@ class TestGeminiContradictionChecker:
         checker.check_relevance("Fact A", "Fact B")
 
         call_kwargs = checker._client.models.generate_content.call_args
-        assert call_kwargs.kwargs["model"] == "gemini-2.0-flash"
+        assert call_kwargs.kwargs["model"] == GeminiContradictionChecker.DEFAULT_MODEL
         assert call_kwargs.kwargs["config"]["response_mime_type"] == "application/json"
         assert call_kwargs.kwargs["config"]["temperature"] == 0.0
 
