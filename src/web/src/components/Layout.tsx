@@ -37,7 +37,7 @@ export default function Layout() {
       {/* Sidebar */}
       <nav style={styles.sidebar}>
         <div style={styles.logo}>
-          <span style={styles.logoIcon}>E</span>
+          <span style={styles.logoIcon}>V</span>
           <span style={styles.logoText}>Verinode</span>
         </div>
 
