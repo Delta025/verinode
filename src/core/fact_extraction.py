@@ -403,7 +403,7 @@ class GeminiFactExtractor:
     for shared rate limiting across extraction and contradiction checking.
     """
 
-    DEFAULT_MODEL = "gemini-2.0-flash"
+    DEFAULT_MODEL = "gemini-3.8-flash"
 
     def __init__(
         self,
@@ -418,12 +418,13 @@ class GeminiFactExtractor:
         Args:
             api_key: Google Gemini API key.  Falls back to
                 ``VERINODE_GEMINI_API_KEY`` environment variable.
-            model: Gemini model name.  Defaults to DEFAULT_MODEL.
+            model: Gemini model name.  Defaults to $VERINODE_GEMINI_MODEL,
+                   then DEFAULT_MODEL.
             temperature: Sampling temperature (0 = deterministic).
             rate_limiter: Optional :class:`GeminiRateLimiter` instance
                 for shared rate limiting.
         """
-        self.model = model or self.DEFAULT_MODEL
+        self.model = model or os.environ.get("VERINODE_GEMINI_MODEL") or self.DEFAULT_MODEL
         self.temperature = temperature
         self.rate_limiter = rate_limiter
 

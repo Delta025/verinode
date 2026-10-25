@@ -96,7 +96,7 @@ class AppState:
 
             backend = os.environ.get("VERINODE_CHECKER_BACKEND", "ollama")
             # Only pass model name when using the matching backend;
-            # Gemini needs its own model name (defaults to gemini-2.0-flash).
+            # Gemini needs its own model name (see VERINODE_GEMINI_MODEL).
             model = self.model if backend == "ollama" else None
             self._contradiction_checker = create_contradiction_checker(
                 model=model,

@@ -34,7 +34,7 @@ For detailed research notes and references, see [docs/research.md](docs/research
 
 **All 15 development steps complete.** Core system fully built, tested, and stress-tested with graphs from 34 to 3000 nodes across 6 domains.
 
-801 unit tests + 58 integration tests + 57 calibration tests across 32 files. The system runs entirely locally via CLI (`python -m src.cli`) or Web UI (`python run_server.py`) with Ollama (qwen3:14b) or Gemini 2.0 Flash for LLM operations.
+801 unit tests + 58 integration tests + 57 calibration tests across 32 files. The system runs entirely locally via CLI (`python -m src.cli`) or Web UI (`python run_server.py`) with Ollama (qwen3:14b) or Gemini Flash for LLM operations.
 
 **Key results** (Feb 2026):
 - Contradiction detection F1=0.842, extraction fidelity=0.800, 0% hallucination rate
