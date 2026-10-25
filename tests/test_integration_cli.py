@@ -1,5 +1,5 @@
 """
-Integration tests for the Engram CLI.
+Integration tests for the Verinode CLI.
 
 These tests require a running Ollama server with a pulled model.
 Skipped by default; run with: pytest --run-integration

@@ -1,10 +1,10 @@
-# Engram — Quick Start Guide
+# Verinode — Quick Start Guide
 
 ## Installation
 
 ```bash
 # Clone the project
-cd engram
+cd verinode
 
 # Install core dependencies
 pip install numpy sentence-transformers ollama click rich
@@ -484,7 +484,7 @@ for impact in sim.impacts:
 
 ### 11. LLM Memory Substrate
 
-Use Engram as verified long-term memory for LLMs.
+Use Verinode as verified long-term memory for LLMs.
 
 ```python
 from src.core import LLMMemory

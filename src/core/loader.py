@@ -91,7 +91,7 @@ def fetch_and_extract(url: str, timeout: int = 30) -> LoadedContent:
         resp = requests.get(
             url,
             timeout=timeout,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; EngramAI/1.0)"},
+            headers={"User-Agent": "Mozilla/5.0 (compatible; Verinode/1.0)"},
         )
         resp.raise_for_status()
         html = resp.text

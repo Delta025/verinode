@@ -1,1 +1,1 @@
-"""FastAPI backend for Engram AI."""
+"""FastAPI backend for Verinode."""

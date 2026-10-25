@@ -1,5 +1,5 @@
 """
-Unit tests for the Engram CLI.
+Unit tests for the Verinode CLI.
 
 All tests use pre-built in-memory graphs and mocked engines.
 No Ollama server needed.

@@ -10,7 +10,7 @@ Supports two backends:
 - **Gemini**: Google's Gemini API via ``GeminiFactExtractor``
 
 Use ``create_fact_extractor()`` factory to select backend via the
-``ENGRAM_EXTRACTOR_BACKEND`` environment variable.
+``VERINODE_EXTRACTOR_BACKEND`` environment variable.
 """
 
 from dataclasses import dataclass, field
@@ -414,7 +414,7 @@ class GeminiFactExtractor:
 
         Args:
             api_key: Google Gemini API key.  Falls back to
-                ``ENGRAM_GEMINI_API_KEY`` environment variable.
+                ``VERINODE_GEMINI_API_KEY`` environment variable.
             model: Gemini model name.  Defaults to DEFAULT_MODEL.
             temperature: Sampling temperature (0 = deterministic).
             rate_limiter: Optional :class:`GeminiRateLimiter` instance
@@ -424,10 +424,10 @@ class GeminiFactExtractor:
         self.temperature = temperature
         self.rate_limiter = rate_limiter
 
-        resolved_key = api_key or os.environ.get("ENGRAM_GEMINI_API_KEY")
+        resolved_key = api_key or os.environ.get("VERINODE_GEMINI_API_KEY")
         if not resolved_key:
             raise ValueError(
-                "Gemini API key required. Set ENGRAM_GEMINI_API_KEY "
+                "Gemini API key required. Set VERINODE_GEMINI_API_KEY "
                 "environment variable or pass api_key= to constructor."
             )
 
@@ -543,7 +543,7 @@ def create_fact_extractor(
 
     Backend selection (in order of priority):
     1. ``backend`` parameter
-    2. ``ENGRAM_EXTRACTOR_BACKEND`` environment variable
+    2. ``VERINODE_EXTRACTOR_BACKEND`` environment variable
     3. Falls back to ``"ollama"``
 
     Args:
@@ -557,7 +557,7 @@ def create_fact_extractor(
         A fact extractor instance, or None if initialization fails.
     """
     resolved_backend = (
-        backend or os.environ.get("ENGRAM_EXTRACTOR_BACKEND", "ollama")
+        backend or os.environ.get("VERINODE_EXTRACTOR_BACKEND", "ollama")
     ).lower().strip()
 
     try:

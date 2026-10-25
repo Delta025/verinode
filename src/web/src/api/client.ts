@@ -1,5 +1,5 @@
 /**
- * API client for the Engram FastAPI backend.
+ * API client for the Verinode FastAPI backend.
  *
  * All routes are prefixed with /api. In development, Vite proxies
  * these to http://127.0.0.1:8000.

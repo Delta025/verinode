@@ -1,4 +1,4 @@
-"""Launch the Engram web server."""
+"""Launch the Verinode web server."""
 
 import uvicorn
 

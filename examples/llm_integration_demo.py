@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-LLM Integration Demo — Engram Step 10
+LLM Integration Demo — Verinode Step 10
 
-Demonstrates how an external LLM would use Engram as a verified
+Demonstrates how an external LLM would use Verinode as a verified
 memory system. Shows the three-step integration pattern:
 
   1. RECALL: LLM retrieves relevant facts before answering
@@ -54,7 +54,7 @@ SEED_FACTS = [
 
 def main():
     print("=" * 60)
-    print("Engram — LLM Integration Demo")
+    print("Verinode — LLM Integration Demo")
     print("=" * 60)
 
     # ---------------------------------------------------------------
@@ -119,7 +119,7 @@ def main():
     print("SCENARIO: LLM needs to answer 'What is the melting point of gold?'")
     print("=" * 60)
 
-    # Step 1: RECALL — LLM queries Engram for relevant facts
+    # Step 1: RECALL — LLM queries Verinode for relevant facts
     print("\n--- Step 1: RECALL (retrieve relevant facts) ---")
     result = memory.query("melting point of gold", domain="chemistry", k=5)
 
@@ -207,7 +207,7 @@ def main():
     print("    1. RECALL: Retrieved confidence-scored facts for LLM context")
     print("    2. VERIFY: Caught hallucinated answer (gold at 500C)")
     print("    3. INGEST: Submitted LLM-derived fact with verification")
-    print("  Pattern: LLM queries Engram before answering, verifies before")
+    print("  Pattern: LLM queries Verinode before answering, verifies before")
     print("  using claims, and contributes back verified knowledge.")
 
 

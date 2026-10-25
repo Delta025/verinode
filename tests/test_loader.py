@@ -221,7 +221,7 @@ def test_fetch_and_extract_passes_timeout_and_headers():
     mock_requests.get.assert_called_once_with(
         "https://example.com",
         timeout=15,
-        headers={"User-Agent": "Mozilla/5.0 (compatible; EngramAI/1.0)"},
+        headers={"User-Agent": "Mozilla/5.0 (compatible; Verinode/1.0)"},
     )
 
 

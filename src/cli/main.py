@@ -1,5 +1,5 @@
 """
-Engram CLI — click-based command-line interface.
+Verinode CLI — click-based command-line interface.
 
 Run via:  python -m src.cli [--graph PATH] [--model MODEL] COMMAND
 """
@@ -43,21 +43,21 @@ _STATE_KEY = "state"
 @click.group()
 @click.option(
     "--graph", "-g",
-    default="engram_graph.json",
-    envvar="ENGRAM_GRAPH",
+    default="verinode_graph.json",
+    envvar="VERINODE_GRAPH",
     show_default=True,
     help="Path to the graph file (.json or .db).",
 )
 @click.option(
     "--model", "-m",
     default="qwen3:14b",
-    envvar="ENGRAM_MODEL",
+    envvar="VERINODE_MODEL",
     show_default=True,
     help="Ollama model name for LLM operations.",
 )
 @click.pass_context
 def cli(ctx, graph, model):
-    """Engram — knowledge graph with confidence tracking and reasoning."""
+    """Verinode — knowledge graph with confidence tracking and reasoning."""
     ctx.ensure_object(dict)
     state = EngineState(graph_path=graph, model=model)
     # Auto-load graph if the file exists

@@ -140,7 +140,7 @@ def main():
     logger = logging.getLogger("ingest_sources")
 
     logger.info("=" * 60)
-    logger.info("Engram AI - Source Ingestion")
+    logger.info("Verinode - Source Ingestion")
     logger.info("Config: %s", args.config)
     logger.info("Output: %s", output_path)
     logger.info("Dry run: %s", args.dry_run)

@@ -1,5 +1,5 @@
 """
-Pydantic response models for the Engram API.
+Pydantic response models for the Verinode API.
 
 These provide automatic JSON serialization, validation, and OpenAPI
 documentation. Shapes match the dicts returned by src/core modules.

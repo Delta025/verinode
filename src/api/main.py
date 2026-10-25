@@ -1,5 +1,5 @@
 """
-FastAPI application for Engram AI.
+FastAPI application for Verinode.
 
 Run with:
     python run_server.py
@@ -25,8 +25,8 @@ from .routes import graph, nodes, ingest, query, verification, memory, maintenan
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup: load graph. Shutdown: close connections."""
-    graph_path = os.environ.get("ENGRAM_GRAPH", "engram_graph.db")
-    model = os.environ.get("ENGRAM_MODEL", "qwen3:14b")
+    graph_path = os.environ.get("VERINODE_GRAPH", "verinode_graph.db")
+    model = os.environ.get("VERINODE_MODEL", "qwen3:14b")
 
     state_mod.app_state = AppState(
         graph_path=graph_path,
@@ -34,25 +34,25 @@ async def lifespan(app: FastAPI):
     )
     state_mod.app_state.load_graph()
 
-    print(f"[Engram] Loaded graph from: {graph_path}")
-    print(f"[Engram] Graph has {len(state_mod.app_state.graph)} nodes")
-    print(f"[Engram] Model: {model}")
+    print(f"[Verinode] Loaded graph from: {graph_path}")
+    print(f"[Verinode] Graph has {len(state_mod.app_state.graph)} nodes")
+    print(f"[Verinode] Model: {model}")
 
     yield
 
     # Shutdown
     if hasattr(state_mod.app_state.graph, "close"):
         state_mod.app_state.graph.close()
-    print("[Engram] Shutdown complete.")
+    print("[Verinode] Shutdown complete.")
 
 
 try:
-    _version = version("engram-ai")
+    _version = version("verinode")
 except PackageNotFoundError:
     _version = "0.1.0"
 
 app = FastAPI(
-    title="Engram AI",
+    title="Verinode",
     description="Knowledge graph with confidence tracking, provenance, and truth verification",
     version=_version,
     lifespan=lifespan,

@@ -1,11 +1,11 @@
-# Engram -- Development Roadmap
+# Verinode -- Development Roadmap
 
 ## Current Status
 
 **All 15 development steps complete.** Core system fully built, tested (797 unit tests, 106 integration/calibration across 34 files), and stress-tested on scale graphs (1K--3K nodes across 6 domains). 214K lines of code across 20 core modules, 21 CLI commands, 30 API endpoints, and 8 web UI pages.
 
 **Recent additions:**
-- **Gemini backend** -- Alternative LLM backend via `ENGRAM_CHECKER_BACKEND=gemini`. F1=0.900 (vs Ollama 0.842), 0.95s/call (vs ~25s).
+- **Gemini backend** -- Alternative LLM backend via `VERINODE_CHECKER_BACKEND=gemini`. F1=0.900 (vs Ollama 0.842), 0.95s/call (vs ~25s).
 - **Multi-pair batching** -- Packs 10 contradiction/relevance checks into one Gemini call. 72% fewer API calls, 91% cheaper for bulk ingestion.
 - **Web ingestion pipeline** -- `scripts/ingest_sources.py` fetches URLs, chunks, and ingests with rate-limited Gemini calls. Resume support, cost tracking.
 - **False positive fix** -- Pipeline now uses 3-way relevance classification (`check_relevance_batch`) instead of binary contradiction checks. Confidence threshold raised from 0.5 to 0.7. Few-shot negative examples added to prompts. `rebuild_contradictions()` method for re-checking existing graphs.
@@ -50,7 +50,7 @@
 Everything works -- the gap is packaging, not features. This phase turns a research project into something others can install and run.
 
 **1a. Python packaging**
-Add `pyproject.toml` with proper metadata, dependencies, and entry points (`engram` for the CLI, `engram-server` for the API). This enables `pip install engram` and publishing to PyPI. Include a `py.typed` marker for downstream type checking. Set initial version to `0.1.0` with semantic versioning going forward.
+Add `pyproject.toml` with proper metadata, dependencies, and entry points (`verinode` for the CLI, `verinode-server` for the API). This enables `pip install verinode` and publishing to PyPI. Include a `py.typed` marker for downstream type checking. Set initial version to `0.1.0` with semantic versioning going forward.
 
 **1b. Docker containerization**
 Create a `Dockerfile` and `docker-compose.yml` that bundles the API server, pre-built web frontend, and an Ollama sidecar container. A single `docker compose up` should give users a fully working system with no manual setup. Include volume mounts for graph persistence and an `.env.example` with all configuration options documented.
@@ -63,7 +63,7 @@ Add configuration validation on startup (check Ollama reachability, validate env
 
 ### Phase 2: Close the Retrieval Ceiling
 
-The E2E pipeline flags 48.3% of contradictions vs 80% standalone LLM recall. This 31.7pp gap is the single biggest accuracy lever -- closing it would make Engram's verification credible at production scale.
+The E2E pipeline flags 48.3% of contradictions vs 80% standalone LLM recall. This 31.7pp gap is the single biggest accuracy lever -- closing it would make Verinode's verification credible at production scale.
 
 **2a. Extraction prompt optimization**
 The 7.9% extraction fidelity improvement from Optuna tuning suggests more gains are available. Systematically test extraction prompt variants across domains, measure fact completeness and hallucination rate, and tune with Optuna. Target: extraction fidelity > 0.85 (currently 0.80). Key focus areas: numerical precision, relationship extraction, and entity disambiguation.
@@ -88,7 +88,7 @@ Build a lightweight claim extractor that identifies verifiable factual statement
 Add a `/api/verify-response` endpoint that accepts an LLM response string, extracts claims, verifies each against the graph, and returns an annotated response with per-claim confidence scores and flags. Target latency: < 5s per response using Gemini backend (vs 60-97s with Ollama). Batch claim verification to minimize LLM round-trips.
 
 **3c. Middleware integration patterns**
-Build integration examples for common LLM frameworks: OpenAI-compatible API proxy (sits between client and LLM, annotates responses), LangChain/LlamaIndex tool (LLM calls Engram to self-verify), and a simple Python decorator (`@engram_verified`) that wraps any function returning LLM text. Ship these as examples in an `integrations/` directory.
+Build integration examples for common LLM frameworks: OpenAI-compatible API proxy (sits between client and LLM, annotates responses), LangChain/LlamaIndex tool (LLM calls Verinode to self-verify), and a simple Python decorator (`@verinode_verified`) that wraps any function returning LLM text. Ship these as examples in an `integrations/` directory.
 
 **3d. Streaming verification**
 For long-form LLM output, verify claims as they arrive rather than waiting for the full response. Buffer sentences, extract claims from complete sentences, verify in parallel with continued generation, and surface flags in near-real-time. This requires async architecture and careful batching to balance latency vs throughput.
@@ -98,7 +98,7 @@ For long-form LLM output, verify claims as they arrive rather than waiting for t
 The "novel domain = no protection" problem is the system's biggest fundamental limitation. The chemistry slab benchmark proved that 109 high-quality nodes matched 183 mixed-quality nodes -- source quality matters more than quantity.
 
 **4a. Curated source configs**
-Create JSON ingestion configs for high-value domains: medicine (PubMed, WHO guidelines), law (case law databases, statutes), finance (SEC filings, central bank data), and general science (Wikipedia featured articles, textbook sources). Each config includes URLs, quality scores, and domain tags. Users run `engram ingest --config medicine.json` to bootstrap a domain.
+Create JSON ingestion configs for high-value domains: medicine (PubMed, WHO guidelines), law (case law databases, statutes), finance (SEC filings, central bank data), and general science (Wikipedia featured articles, textbook sources). Each config includes URLs, quality scores, and domain tags. Users run `verinode ingest --config medicine.json` to bootstrap a domain.
 
 **4b. Pre-built graph distribution**
 Build and publish pre-ingested graph files (SQLite `.db` format) for common domains. Host on GitHub Releases or a dedicated CDN. Users download a graph and start verifying immediately with zero LLM cost. Include metadata: node count, domain coverage, source list, build date, verification stats.
@@ -114,7 +114,7 @@ Add tooling to measure what a graph covers and where it has gaps. Given a domain
 A knowledge graph that identifies its own blind spots and fills them moves from a static reference to an adaptive system.
 
 **5a. Gap detection**
-Track verification queries that return low-confidence or zero results. Cluster these by topic to identify systematic knowledge gaps rather than one-off misses. Expose gaps via the API and CLI (`engram gaps --domain science`). Rank gaps by frequency and impact (how many verification requests would benefit from filling this gap).
+Track verification queries that return low-confidence or zero results. Cluster these by topic to identify systematic knowledge gaps rather than one-off misses. Expose gaps via the API and CLI (`verinode gaps --domain science`). Rank gaps by frequency and impact (how many verification requests would benefit from filling this gap).
 
 **5b. Research query generation**
 Given a knowledge gap, generate targeted search queries to fill it. Use the LLM to formulate queries based on what the graph knows nearby (e.g., if we know about Mars's atmosphere but not its magnetic field, generate "Mars magnetic field properties"). Filter for queries likely to yield high-quality, verifiable facts.
@@ -127,10 +127,10 @@ Build connectors for structured knowledge sources: PubMed (biomedical literature
 
 ### Phase 6: Federated Trust Networks (Research)
 
-Multiple Engram instances cross-validating each other addresses the "coherent falsehood" problem -- if one graph is poisoned, others can catch it.
+Multiple Verinode instances cross-validating each other addresses the "coherent falsehood" problem -- if one graph is poisoned, others can catch it.
 
 **6a. Cross-instance verification protocol**
-Define a protocol where one Engram instance can submit a claim to another for verification without sharing raw graph data. The responding instance returns a verdict (supported/contradicted/unknown) with a confidence score. This preserves data privacy while enabling collaborative truth-checking.
+Define a protocol where one Verinode instance can submit a claim to another for verification without sharing raw graph data. The responding instance returns a verdict (supported/contradicted/unknown) with a confidence score. This preserves data privacy while enabling collaborative truth-checking.
 
 **6b. Trust scoring between instances**
 Track agreement history between instances. Instances that consistently agree on verified facts build mutual trust; instances that frequently disagree on well-established facts lose trust. Use trust scores to weight cross-instance verdicts. This creates a reputation system for knowledge sources.

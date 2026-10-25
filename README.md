@@ -1,8 +1,8 @@
-# Engram
+# Verinode
 
 An interpretable, verifiable AI knowledge system that uses explicit knowledge graphs with confidence tracking, provenance, and multi-hop reasoning — designed as a structured, auditable alternative to opaque neural network weights.
 
-> **engram** (noun): a hypothesized physical or biochemical trace of memory in the brain. Engram makes AI knowledge explicit, traceable, and verifiable — every fact has a source, every conclusion has a reasoning chain, and every confidence score has a mathematical derivation.
+> **verinode** (noun): a hypothesized physical or biochemical trace of memory in the brain. Verinode makes AI knowledge explicit, traceable, and verifiable — every fact has a source, every conclusion has a reasoning chain, and every confidence score has a mathematical derivation.
 
 ## Project Goals
 
@@ -24,7 +24,7 @@ Modern AI systems face a growing set of vulnerabilities that all share a common 
 
 Across all of these, a consistent pattern emerges: **attacks exploit the gap between statistical pattern-matching and grounded truth**. Data poisoning corrupts the patterns. Prompt injection hijacks pattern-following behavior. Subliminal learning propagates hidden patterns between models. Hallucination is the natural consequence of pattern-matching without verification.
 
-Engram explores whether **explicit knowledge graphs with confidence tracking, provenance, and contradiction detection** can provide the structured verification layer that neural approaches fundamentally lack. Rather than replacing LLMs, Engram acts as an independent knowledge substrate — every claim can be decomposed into assertions and verified against confidence-weighted facts with traceable sources. Claims contradicting high-confidence established knowledge are flagged. Novel claims entering empty domains are marked as provisional. Anomalous confidence patterns signal potential contamination.
+Verinode explores whether **explicit knowledge graphs with confidence tracking, provenance, and contradiction detection** can provide the structured verification layer that neural approaches fundamentally lack. Rather than replacing LLMs, Verinode acts as an independent knowledge substrate — every claim can be decomposed into assertions and verified against confidence-weighted facts with traceable sources. Claims contradicting high-confidence established knowledge are flagged. Novel claims entering empty domains are marked as provisional. Anomalous confidence patterns signal potential contamination.
 
 This approach draws on principles from cybersecurity: anomaly detection (intrusion detection), provenance tracking (chain of custody), multiple validation layers (defense in depth), and calibrated trust scoring (trust but verify).
 
@@ -41,23 +41,23 @@ For detailed research notes and references, see [docs/research.md](docs/research
 - E2E ingestion contradiction flag rate: 48.3% with 0% false positives
 - **Claim verification: 9/10 false claims caught (90%), 9/10 true claims correct** — validated against a 215-node graph across chemistry, physics, and biology
 
-**Vulnerability resistance benchmark** (75 test cases, bare qwen3:14b vs qwen3:14b + Engram):
+**Vulnerability resistance benchmark** (75 test cases, bare qwen3:14b vs qwen3:14b + Verinode):
 
-| Category | Without Engram | With Engram | Delta |
+| Category | Without Verinode | With Verinode | Delta |
 |---|:---:|:---:|:---:|
 | Poisoned Context Resistance | 20% | **100%** | **+80pp** |
 | Subtle Numerical Errors | 20% | **80%** | **+60pp** |
 | False Claim Detection | 100% | 95% | -5pp |
 | Factual Accuracy | 100% | 100% | +0pp |
 
-Engram's largest impact is in adversarial scenarios: resisting injected false context (+80pp) and catching small numerical errors (+60pp). See [docs/benchmarks.md](docs/benchmarks.md) for full results and methodology.
+Verinode's largest impact is in adversarial scenarios: resisting injected false context (+80pp) and catching small numerical errors (+60pp). See [docs/benchmarks.md](docs/benchmarks.md) for full results and methodology.
 
 See [ROADMAP.md](ROADMAP.md) for post-prototype features and future directions.
 
 ## Project Structure
 
 ```
-engram/
+verinode/
 src/core/
     __init__.py              # Package exports for all modules
     node.py                  # KnowledgeNode, NodeType, NodeStatus, Source, Derivation
@@ -158,7 +158,7 @@ examples/
     verify_stress_test.py    # Verification stress test (10 false + 10 true claims)
     build_stress_graph.py    # Build large persistent graph (150 facts → data/stress_test_graph.json)
     benchmark_test_cases.py  # 75 vulnerability benchmark test cases with ground truth
-    benchmark_vulnerability.py # Vulnerability resistance benchmark (Engram vs bare LLM)
+    benchmark_vulnerability.py # Vulnerability resistance benchmark (Verinode vs bare LLM)
 scripts/
     build_solar_system_test.py  # Build solar system calibration test graph (no LLM)
     rebuild_conflicts.py        # Rebuild contradictions across entire graph
@@ -263,11 +263,11 @@ All read-only commands (`stats`, `list`, `inspect`, `explain`, `trace`, `anomali
 Interactive web interface for graph exploration, knowledge ingestion, querying, and diagnostics.
 
 ```bash
-# Start the Web UI server (loads graph from ENGRAM_GRAPH env var or default path)
+# Start the Web UI server (loads graph from VERINODE_GRAPH env var or default path)
 python run_server.py
 
 # Or with a specific graph file
-ENGRAM_GRAPH=my_graph.db python run_server.py
+VERINODE_GRAPH=my_graph.db python run_server.py
 
 # Open http://localhost:8000 in your browser
 ```
